@@ -19,10 +19,10 @@ struct ConcertRowView: View {
             }
             Spacer()
             if let rating = concert.rating {
-                Text("★ " + String(format: "%.1f", rating)).foregroundStyle(.pink)
+                Text("★ " + String(format: "%.1f", rating)).foregroundStyle(Color.btsPink)
                     .padding(.horizontal, 15)
                     .padding(.vertical, 10)
-                    .background(.pink.opacity(0.2))
+                    .background(Color.btsPink.opacity(0.2))
                     .clipShape(Capsule())
             }
         }

@@ -15,11 +15,13 @@ struct ConcertCardView: View {
                         Image(systemName: "star.fill")
                     }
                 }
+                .foregroundStyle(Color.btsPink)
             }
             if let comment = concert.comment {
                 Text(comment)
                     .italic()
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
             HStack {
                 ForEach(concert.tags, id: \.self) { tag in
@@ -27,7 +29,7 @@ struct ConcertCardView: View {
                         .font(.caption)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(.pink.opacity(0.2))
+                        .background(Color.btsPink.opacity(0.2))
                         .clipShape(Capsule())
                 }
             }

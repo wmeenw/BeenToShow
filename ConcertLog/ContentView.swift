@@ -29,7 +29,7 @@ struct ContentView: View {
     func statColumn(value: String, title: String) -> some View {
         VStack {
             Text(value).font(.title).bold()
-            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(title).font(.caption).foregroundStyle(.white.opacity(0.8))
         }
         .frame(maxWidth: .infinity)
     }
@@ -43,8 +43,13 @@ struct ContentView: View {
                     statColumn(value: String(format: "%.1f", averageRating), title: "средняя оценка")
                 }
                 .padding()
-                .background(.gray.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .background(
+                    LinearGradient(
+                        colors: [Color.btsPink, Color.btsViolet],
+                        startPoint: .topLeading,
+                        endPoint: UnitPoint.bottomTrailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 26))
                 .padding(.horizontal)
 
                 Picker("Концерты", selection: $showPast) {
@@ -61,7 +66,7 @@ struct ContentView: View {
                                 ConcertRowView(concert: concert)
                                     .padding(.vertical)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(.gray.opacity(0.15))
+                                    .background(Color.btsCard)
                                     .clipShape(RoundedRectangle(cornerRadius: 20))
                             }
                             .buttonStyle(.plain)
@@ -71,7 +76,9 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Мои концерты")
+            .background(Color.btsBackground.ignoresSafeArea())
         }
+        .preferredColorScheme(.dark)
     }
 }
 
