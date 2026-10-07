@@ -28,7 +28,7 @@ struct ContentView: View {
 
     func statColumn(value: String, title: String) -> some View {
         VStack {
-            Text(value).font(.title).bold()
+            Text(value).font(.system(size: 36, weight: .heavy))
             Text(title).font(.caption).foregroundStyle(.white.opacity(0.8))
         }
         .frame(maxWidth: .infinity)

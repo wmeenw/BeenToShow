@@ -7,7 +7,7 @@ struct ConcertRowView: View {
         HStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(LinearGradient(
-                    colors : [.pink, .purple, .blue],
+                    colors : [Color.btsPink, Color.btsViolet],
                     startPoint: .topTrailing,
                     endPoint: .bottomLeading
                 ))

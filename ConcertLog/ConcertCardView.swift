@@ -5,36 +5,104 @@ struct ConcertCardView: View {
 
     var body: some View {
         VStack {
-            Text(concert.artist).font(.title)
-            Text(concert.city).foregroundStyle(.secondary)
-            Text(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))
-                .foregroundStyle(.secondary)
-            if let rating = concert.rating {
+            ZStack (alignment: .bottomLeading) {
+                LinearGradient (
+                    colors: [Color.btsPink, Color.btsBackground],
+                    startPoint: .top,
+                    endPoint: UnitPoint.bottom)
+                VStack(alignment: .leading) {
+                    Text("BEEN TO SHOW")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.btsLime)
+                        .clipShape(Capsule())
+                    Text(concert.artist).font(.system(size: 34, weight: .heavy))
+                    Text(concert.city).foregroundStyle(.white.opacity(0.8))
+                    Text(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding()
+            }
+            .frame(height: 333)
+            .ignoresSafeArea(edges: .top)
+           
+            HStack(spacing: 16) {
                 HStack {
-                    ForEach(0..<Int(rating.rounded()), id: \.self) { _ in
-                        Image(systemName: "star.fill")
+                    if let rating = concert.rating {
+                        HStack {
+                            ForEach(0..<Int(rating.rounded()), id: \.self) { _ in
+                                Image(systemName: "star.fill")
+                            }
+                            .foregroundStyle(Color.btsPink)
+                            Text(String(format: "%.1f", rating))
+                                .font(.system(size: 21, weight: .bold))
+                                .fixedSize()
+                        }
                     }
                 }
-                .foregroundStyle(Color.btsPink)
-            }
-            if let comment = concert.comment {
-                Text(comment)
-                    .italic()
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            HStack {
-                ForEach(concert.tags, id: \.self) { tag in
-                    Text(tag)
-                        .font(.caption)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.btsPink.opacity(0.2))
-                        .clipShape(Capsule())
+                Spacer()
+                
+                HStack {
+                    ForEach(concert.tags, id: \.self) { tag in
+                        Text(tag)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.btsPink, Color.btsViolet],
+                                    startPoint: .leading,
+                                    endPoint: .trailing)
+                            )
+                            .clipShape(Capsule())
+                    }
                 }
             }
+    
+            .padding()
+            if let comment = concert.comment {
+                HStack(spacing: 12) {
+                    Rectangle()
+                        .fill(Color.btsPink)
+                        .frame(width: 4)
+                    
+                    Text("«\(comment)»")
+                        .foregroundStyle(Color.white.opacity(0.9))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .padding()
+                .background(Color.btsCard)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            Spacer()
+            
+            Button {
+                
+            } label: {
+                Text("Изменить")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.btsCard)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .overlay(                                     
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            }
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.btsBackground.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+        
+        
+        
+        
     }
 }
 
