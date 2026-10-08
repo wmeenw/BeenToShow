@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var showPast = true
+    @State private var showForm = false
 
     var concerts: [Concert] {
         let startOfToday = Calendar.current.startOfDay(for: Date())
@@ -76,7 +77,7 @@ struct ContentView: View {
             .background(Color.btsBackground.ignoresSafeArea())
             .overlay(alignment: .bottomTrailing) {
                 Button {
-                    
+                    showForm = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .bold))
@@ -96,6 +97,9 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showForm) {
+            Text("Новый концерт")
+        }
     }
 }
 

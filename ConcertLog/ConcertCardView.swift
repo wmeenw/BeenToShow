@@ -11,7 +11,8 @@ struct ConcertCardView: View {
                     startPoint: .top,
                     endPoint: UnitPoint.bottom)
                 VStack(alignment: .leading) {
-                    Text("BEEN TO SHOW")
+                    let been = Calendar.current.startOfDay(for: Date()) > concert.date ? "BEEN TO SHOW" : "UPCOMING"
+                    Text(been)
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 12)

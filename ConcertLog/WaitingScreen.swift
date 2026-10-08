@@ -13,8 +13,13 @@ struct WaitingScreen: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(upcoming) { concert in
-                        ConcertRowView(concert: concert)
-                            .concertCard()
+                        NavigationLink {
+                            ConcertCardView(concert: concert)
+                        } label: {
+                            ConcertRowView(concert: concert)
+                                .concertCard()
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal)
