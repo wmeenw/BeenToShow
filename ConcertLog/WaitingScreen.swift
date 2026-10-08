@@ -2,8 +2,9 @@ import Foundation
 import SwiftUI
 
 struct WaitingScreen: View {
+    @Environment(ConcertStore.self) private var store
     var upcoming: [Concert] {
-        sampleConcerts
+        store.concerts
             .filter { $0.date >= Calendar.current.startOfDay(for: Date()) }
             .sorted { $0.date < $1.date }
     }
@@ -33,4 +34,5 @@ struct WaitingScreen: View {
 
 #Preview {
     WaitingScreen()
+        .environment(ConcertStore())
 }

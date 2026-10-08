@@ -3,20 +3,22 @@ import SwiftUI
 struct ContentView: View {
     @State private var showPast = true
     @State private var showForm = false
+    @State private var showWaitingForm = false
+    @Environment(ConcertStore.self) private var store
 
     var concerts: [Concert] {
         let startOfToday = Calendar.current.startOfDay(for: Date())
         if showPast {
-            return sampleConcerts
+            return store.concerts
                 .filter { $0.date < startOfToday }
                 .sorted { $0.date > $1.date }
         } else {
-            return sampleConcerts
+            return store.concerts
                 .filter { $0.date >= startOfToday }
                 .sorted { $0.date < $1.date }
         }
     }
-    var pastConcerts: [Concert] { return sampleConcerts.filter {$0.date < Calendar.current.startOfDay(for: Date())} }
+    var pastConcerts: [Concert] { return store.concerts.filter {$0.date < Calendar.current.startOfDay(for: Date())} }
     var concertsCount: Int { return pastConcerts.count }
     var citiesCount: Int { return Set(pastConcerts.map { $0.city }).count }
     var averageRating: Double {
@@ -77,7 +79,11 @@ struct ContentView: View {
             .background(Color.btsBackground.ignoresSafeArea())
             .overlay(alignment: .bottomTrailing) {
                 Button {
-                    showForm = true
+                    if showPast {
+                        showForm = true
+                    } else {
+                        showWaitingForm = true
+                    }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .bold))
@@ -91,18 +97,22 @@ struct ContentView: View {
                             )
                         )
                         .clipShape(Circle())
-                        .shadow(color: Color.mint.opacity(0.5), radius: 12)
+                        .shadow(color: Color.btsPink.opacity(0.5), radius: 12)
                 }
                 .padding()
             }
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showForm) {
-            Text("Новый концерт")
+            NewConcertView()
+        }
+        .sheet(isPresented: $showWaitingForm) {
+            NewWaitingView()
         }
     }
 }
 
 #Preview {
     ContentView()
+        .environment(ConcertStore())
 }
