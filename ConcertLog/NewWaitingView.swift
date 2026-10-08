@@ -30,7 +30,9 @@ struct NewWaitingView: View {
                     }
                 }
             }
+            .background(Color.btsBackground.ignoresSafeArea())
         }
+        .preferredColorScheme(.dark)
     }
 }
 
