@@ -10,17 +10,62 @@ struct NewWaitingView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                TextField("Исполнитель", text: $artist)
-                TextField("Город", text: $city)
-                DatePicker("Дата", selection: $date,in: Date()..., displayedComponents: .date)
-                Button("Добавить в ожидаемые") {
+            ScrollView {
+                VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Исполнитель")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("Например, Charli XCX", text: $artist)
+                            .font(.title3)
+                    }
+                    .inputCard()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Город")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("Например, Париж", text: $city)
+                            .font(.title3)
+                    }
+                    .inputCard()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Когда")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        DatePicker("Дата", selection: $date, in: Date()..., displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                    .inputCard()
+                }
+                .padding(.horizontal)
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button {
                     store.add(artist: artist, city: city, date: date, rating: 0, comment: "")
                     dismiss()
+                } label: {
+                    Text("Добавить в ожидаемые")
+                        .font(.headline)
+                        .foregroundStyle(Color.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.btsPink, Color.btsViolet],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(Capsule())
                 }
                 .disabled(artist.isEmpty || city.isEmpty)
+                .opacity(artist.isEmpty || city.isEmpty ? 0.4 : 1)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
             }
-            .navigationTitle("Ждем концерт")
+            .navigationTitle("Ждём концерт")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {

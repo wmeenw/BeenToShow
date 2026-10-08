@@ -15,7 +15,7 @@ struct WaitingScreen: View {
                 LazyVStack(spacing: 12) {
                     ForEach(upcoming) { concert in
                         NavigationLink {
-                            ConcertCardView(concert: concert)
+                            WaitingCardView(concert: concert)
                         } label: {
                             ConcertRowView(concert: concert)
                                 .concertCard()

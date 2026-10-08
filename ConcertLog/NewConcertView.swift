@@ -59,8 +59,6 @@ struct NewConcertView: View {
                     }
                     .inputCard()
                     
-                    
-                    
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Комментарий")
                             .font(.caption)
