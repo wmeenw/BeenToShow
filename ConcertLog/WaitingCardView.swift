@@ -3,8 +3,8 @@ import SwiftUI
 
 struct WaitingCardView : View {
     let concert: Concert
-    var parts: DateComponents {
-        Calendar.current.dateComponents([.day, .hour, .minute], from: Date(), to: concert.date)
+    func parts(from now: Date) -> DateComponents {
+        Calendar.current.dateComponents([.day, .hour, .minute], from: now, to: concert.date)
     }
     
     func tile(value: Int, title: String) -> some View {
@@ -22,43 +22,46 @@ struct WaitingCardView : View {
     }
     
     var body: some View {
-        let days = parts.day ?? 0
-        let hours = parts.hour ?? 0
-        let minutes = parts.minute ?? 0
-        
-        VStack {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ДО КОНЦЕРТА")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.btsLime)
-                Text(concert.artist)
-                    .font(.system(size: 30, weight: .heavy))
-                    .foregroundStyle(.white)
-                Text("\(concert.city) · \(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))")
-                    .foregroundStyle(.white.opacity(0.5))
-                
-                HStack(spacing: 12) {
-                    tile(value: days, title: daysWord(days))
-                    tile(value: hours, title: hoursWord(hours))
-                    tile(value: minutes, title: minutesWord(minutes))
-                }
-            }
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let p = parts(from: context.date)
+            let days = p.day ?? 0
+            let hours = p.hour ?? 0
+            let minutes = p.minute ?? 0
             
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.btsCard)
-            .clipShape(RoundedRectangle(cornerRadius: 28))
-            .overlay(
-                RoundedRectangle(cornerRadius: 28)
-                    .stroke(
-                        LinearGradient(colors: [Color.btsPink, Color.btsViolet],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2))
-            .padding(.horizontal)
-            Spacer()
+            VStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("ДО КОНЦЕРТА")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.btsLime)
+                    Text(concert.artist)
+                        .font(.system(size: 30, weight: .heavy))
+                        .foregroundStyle(.white)
+                    Text("\(concert.city) · \(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))")
+                        .foregroundStyle(.white.opacity(0.5))
+                    
+                    HStack(spacing: 12) {
+                        tile(value: days, title: daysWord(days))
+                        tile(value: hours, title: hoursWord(hours))
+                        tile(value: minutes, title: minutesWord(minutes))
+                    }
+                }
+                
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.btsCard)
+                .clipShape(RoundedRectangle(cornerRadius: 28))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28)
+                        .stroke(
+                            LinearGradient(colors: [Color.btsPink, Color.btsViolet],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2))
+                .padding(.horizontal)
+                Spacer()
+            }
+            .background(Color.btsBackground.ignoresSafeArea())
+            .preferredColorScheme(.dark)
         }
-        .background(Color.btsBackground.ignoresSafeArea())
-        .preferredColorScheme(.dark)
-    }
+        }
 }
 
 #Preview {

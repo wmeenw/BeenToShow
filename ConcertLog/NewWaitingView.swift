@@ -14,25 +14,25 @@ struct NewWaitingView: View {
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Исполнитель")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         TextField("Например, Charli XCX", text: $artist)
-                            .font(.title3)
+                            .font(.title2)
                     }
                     .inputCard()
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Город")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         TextField("Например, Париж", text: $city)
-                            .font(.title3)
+                            .font(.title2)
                     }
                     .inputCard()
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Когда")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         DatePicker("Дата", selection: $date, in: Date()..., displayedComponents: .date)
                             .labelsHidden()
@@ -66,6 +66,7 @@ struct NewWaitingView: View {
                 .padding(.bottom, 8)
             }
             .navigationTitle("Ждём концерт")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import PhotosUI
 
 struct NewConcertView: View {
     @State private var artist = ""
@@ -7,6 +8,8 @@ struct NewConcertView: View {
     @State private var date = Date()
     @State private var rating = 0.0
     @State private var comment = ""
+    @State private var photoItem: PhotosPickerItem?
+    @State private var photo: Image?
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
     
@@ -14,27 +17,62 @@ struct NewConcertView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    VStack {
+                        Text("Фото и видео")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            PhotosPicker(selection: $photoItem, matching: .images) {
+                                RoundedRectangle(cornerRadius: 20)
+                                    .strokeBorder(
+                                        Color.btsPink,
+                                        style: StrokeStyle(lineWidth: 1.5, dash: [6])
+                                    )
+                                    .frame(width: 100, height: 100)
+                                    .overlay(
+                                        Image(systemName: "plus")
+                                            .font(.title)
+                                            .foregroundStyle(Color.btsPink)
+                                    )
+                            }
+                            photo?
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 100, height: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onChange(of: photoItem) {
+                        Task {
+                            if let data = try? await photoItem?.loadTransferable(type: Data.self),
+                               let ui = UIImage(data: data) {
+                                photo = Image(uiImage: ui)
+                            }
+                        }
+                    }
+                    
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Исполнитель")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         TextField("Например, Billie Eilish", text: $artist)
-                            .font(.title3)
+                            .font(.title2)
                     }
                     .inputCard()
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Город")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         TextField("Например, Лондон", text: $city)
-                            .font(.title3)
+                            .font(.title2)
                     }
                     .inputCard()
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Когда")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         DatePicker("Дата", selection: $date, in: ...Date(), displayedComponents: .date)
                             .labelsHidden()
@@ -43,11 +81,11 @@ struct NewConcertView: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Оценка")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         HStack {
                             Text(String(format: "%.1f", rating))
-                                    .font(.title3)
+                                    .font(.title2)
                             Spacer()
                             ForEach(1...5, id: \.self) { i in
                                 Image(systemName: Double(i) <= rating ? "star.fill" : "star")
@@ -61,10 +99,10 @@ struct NewConcertView: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Комментарий")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         TextField("Как всё прошло?", text: $comment, axis: .vertical)
-                            .font(.title3)
+                            .font(.title2)
                             .lineLimit(3...6)
                     }
                     .inputCard()
@@ -96,6 +134,7 @@ struct NewConcertView: View {
                 .padding(.bottom, 8)
             }
             .navigationTitle("Новое впечатление")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
