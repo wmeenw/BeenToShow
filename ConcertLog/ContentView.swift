@@ -65,7 +65,13 @@ struct ContentView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(concerts) { concert in
-                            NavigationLink(destination: ConcertCardView(concert: concert)){
+                            NavigationLink {
+                                if showPast {
+                                    ConcertCardView(concert: concert)
+                                } else {
+                                    WaitingCardView(concert: concert)
+                                }
+                            } label: {
                                 ConcertRowView(concert: concert)
                                     .concertCard()
                             }
