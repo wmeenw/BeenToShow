@@ -1,7 +1,7 @@
 import Foundation
 
-struct Concert: Identifiable {
-    let id = UUID()
+struct Concert: Identifiable, Codable {
+    var id = UUID()
     let artist: String
     let city: String
     let date: Date

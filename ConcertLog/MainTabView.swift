@@ -11,7 +11,7 @@ struct MainTabView: View {
             
             WaitingScreen()
                 .tabItem {
-                    Label("Ждем", systemImage: "clock")
+                    Label("Ждём", systemImage: "clock")
                 }
             
             Text("Профиль")
