@@ -87,7 +87,8 @@ struct ConcertCardView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 15)
+                    .padding(.bottom, 3)
                     .background(Color.btsCard)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .overlay(                                     
@@ -99,10 +100,7 @@ struct ConcertCardView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.btsBackground.ignoresSafeArea())
         .preferredColorScheme(.dark)
-        
-        
-        
-        
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 

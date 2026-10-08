@@ -64,10 +64,7 @@ struct ContentView: View {
                         ForEach(concerts) { concert in
                             NavigationLink(destination: ConcertCardView(concert: concert)){
                                 ConcertRowView(concert: concert)
-                                    .padding(.vertical)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.btsCard)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                                    .concertCard()
                             }
                             .buttonStyle(.plain)
                         }
@@ -77,6 +74,26 @@ struct ContentView: View {
             }
             .navigationTitle("Мои концерты")
             .background(Color.btsBackground.ignoresSafeArea())
+            .overlay(alignment: .bottomTrailing) {
+                Button {
+                    
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 60, height: 60)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.btsPink, Color.btsViolet],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(Circle())
+                        .shadow(color: Color.mint.opacity(0.5), radius: 12)
+                }
+                .padding()
+            }
         }
         .preferredColorScheme(.dark)
     }
