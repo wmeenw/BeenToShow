@@ -8,6 +8,7 @@ struct Concert: Identifiable, Codable {
     let rating: Double?
     let tags: [String]
     let comment: String?
+    var photoName: String? = nil
 }
 
 func makeDate(day: Int, month: Int, year: Int) -> Date {

@@ -5,13 +5,21 @@ struct ConcertRowView: View {
     
     var body: some View {
         HStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(LinearGradient(
-                    colors : [Color.btsPink, Color.btsViolet],
-                    startPoint: .topTrailing,
-                    endPoint: .bottomLeading
-                ))
-                .frame(width: 48, height: 48)
+            if let photoName = concert.photoName, let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: photoName).path) {
+                Image(uiImage: ui)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(LinearGradient(
+                        colors : [Color.btsPink, Color.btsViolet],
+                        startPoint: .topTrailing,
+                        endPoint: .bottomLeading
+                    ))
+                    .frame(width: 48, height: 48)
+            }
             VStack (alignment: .leading) {
                 Text(concert.artist).font(.headline)
                 Text("\(concert.city) · \(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))")

@@ -10,6 +10,7 @@ struct NewConcertView: View {
     @State private var comment = ""
     @State private var photoItem: PhotosPickerItem?
     @State private var photo: Image?
+    @State private var photoData: Data?
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
     
@@ -17,13 +18,13 @@ struct NewConcertView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    VStack {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Фото и видео")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         HStack(spacing: 12) {
                             PhotosPicker(selection: $photoItem, matching: .images) {
-                                RoundedRectangle(cornerRadius: 20)
+                                RoundedRectangle(cornerRadius: 16)
                                     .strokeBorder(
                                         Color.btsPink,
                                         style: StrokeStyle(lineWidth: 1.5, dash: [6])
@@ -46,8 +47,9 @@ struct NewConcertView: View {
                     .onChange(of: photoItem) {
                         Task {
                             if let data = try? await photoItem?.loadTransferable(type: Data.self),
-                               let ui = UIImage(data: data) {
+                                let ui = UIImage(data: data) {
                                 photo = Image(uiImage: ui)
+                                photoData = ui.jpegData(compressionQuality: 0.7)
                             }
                         }
                     }
@@ -111,7 +113,7 @@ struct NewConcertView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
-                    store.add(artist: artist, city: city, date: date, rating: rating, comment: comment)
+                    store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, photoData: photoData)
                     dismiss()
                 } label: {
                     Text("Сохранить впечатление")
@@ -151,6 +153,6 @@ struct NewConcertView: View {
 }
 
 #Preview {
-    NewConcertView()
-        .environment(ConcertStore())
+        NewConcertView()
+            .environment(ConcertStore())
 }

@@ -9,7 +9,14 @@ import Foundation
         }
     }
     
-    func add(artist: String, city: String, date: Date, rating: Double, comment: String) {
+    func add(artist: String, city: String, date: Date, rating: Double, comment: String, photoData: Data? = nil) {
+        var photoName: String? = nil
+        if let photoData {
+                let name = UUID().uuidString + ".jpg"
+                let url = URL.documentsDirectory.appending(path: name)
+                try? photoData.write(to: url)
+                photoName = name
+            }
         concerts.append(
             Concert(
                 artist: artist,
@@ -17,7 +24,8 @@ import Foundation
                 date: date,
                 rating: rating < 0.05 ? nil : rating,
                 tags: [],
-                comment: comment.isEmpty ? nil : comment
+                comment: comment.isEmpty ? nil : comment,
+                photoName: photoName
             ))
         save()
     }
