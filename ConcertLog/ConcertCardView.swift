@@ -6,8 +6,38 @@ struct ConcertCardView: View {
         store.concerts.first(where: { $0.id == initial.id }) ?? initial
     }
     @State private var showEdit = false
+    @State private var selectedPhotoIndex: Int? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
+
+    private var photoViewer: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+            TabView(selection: Binding(
+                get: { selectedPhotoIndex ?? 0 },
+                set: { selectedPhotoIndex = $0 }
+            )) {
+                ForEach(Array(concert.photoNames.enumerated()), id: \.offset) { index, name in
+                    if let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
+                        Image(uiImage: ui)
+                            .resizable()
+                            .scaledToFit()
+                            .tag(index)
+                    }
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            Button {
+                selectedPhotoIndex = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, .black.opacity(0.6))
+                    .font(.system(size: 28))
+            }
+            .padding()
+        }
+    }
 
     private var ratingView: some View {
         HStack {
@@ -114,13 +144,18 @@ struct ConcertCardView: View {
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
-                            ForEach(concert.photoNames, id: \.self) { name in
+                            ForEach(Array(concert.photoNames.enumerated()), id: \.offset) { index, name in
                                 if let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
-                                    Image(uiImage: ui)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 100, height: 100)
-                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    Button {
+                                        selectedPhotoIndex = index
+                                    } label: {
+                                        Image(uiImage: ui)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 100, height: 100)
+                                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -172,6 +207,12 @@ struct ConcertCardView: View {
             if !exists {
                 dismiss()
             }
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { selectedPhotoIndex != nil },
+            set: { if !$0 { selectedPhotoIndex = nil } }
+        )) {
+            photoViewer
         }
     }
 }

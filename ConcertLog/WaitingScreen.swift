@@ -22,34 +22,40 @@ struct WaitingScreen: View {
         return NavigationLink {
             WaitingCardView(concert: concert)
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("БЛИЖАЙШИЙ КОНЦЕРТ")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.white.opacity(0.85))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.white.opacity(0.45))
                 Text(concert.artist)
-                    .font(.system(size: 32, weight: .heavy))
+                    .font(.system(size: 22, weight: .heavy))
                     .foregroundStyle(Color.white)
                 Text("\(concert.city) · \(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.white.opacity(0.85))
-                HStack(alignment: .lastTextBaseline, spacing: 8) {
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.white.opacity(0.5))
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text("\(days)")
-                        .font(.system(size: 64, weight: .heavy))
+                        .font(.system(size: 40, weight: .heavy))
+                        .foregroundStyle(Color.white)
                     Text("\(daysWord(days)) до концерта")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.7))
                 }
-                .foregroundStyle(Color.white)
             }
-            .padding(20)
+            .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                LinearGradient(
-                    colors: [Color.btsPink, Color.btsViolet],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+            .background(Color.btsCard)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.btsPink.opacity(0.5), Color.btsViolet.opacity(0.5)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
             )
-            .clipShape(RoundedRectangle(cornerRadius: 28))
         }
         .buttonStyle(.plain)
     }

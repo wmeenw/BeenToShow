@@ -42,6 +42,24 @@ struct WaitingCardView : View {
         current.saleDate != nil || !current.reminders.isEmpty || current.remindAfterConcert
     }
 
+    private var reminderStatusText: String {
+        if current.reminders.isEmpty {
+            return "Напоминания не будет"
+        }
+        return "Напомним: " + current.reminders.map { $0.lowercased() }.joined(separator: ", ")
+    }
+
+    private var reminderStatusRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: current.reminders.isEmpty ? "bell.slash" : "bell.fill")
+                .foregroundStyle(current.reminders.isEmpty ? Color.white.opacity(0.4) : Color.btsLime)
+            Text(reminderStatusText)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(current.reminders.isEmpty ? Color.white.opacity(0.4) : Color.white.opacity(0.8))
+        }
+        .padding(.horizontal)
+    }
+
     private var notesBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("ЗАМЕТКИ")
@@ -175,6 +193,7 @@ struct WaitingCardView : View {
 
                 ScrollView {
                     VStack(spacing: 16) {
+                        reminderStatusRow
                         notesBlock
                         if showWhatsNext {
                             whatsNextBlock

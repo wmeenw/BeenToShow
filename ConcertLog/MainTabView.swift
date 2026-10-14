@@ -41,6 +41,7 @@ struct ProfileView: View {
     @State private var nameDraft = ""
     @State private var showDeleteAll = false
     @State private var showSoon = false
+    @State private var showAllAchievements = false
     
     private let levels: [(threshold: Int, title: String, genitive: String)] = [
         (0, "Новичок", "Новичка"),
@@ -415,14 +416,54 @@ struct ProfileView: View {
         ]
     }
 
+    private var achievementsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(Array(achievements.enumerated()), id: \.offset) { _, item in
+                        VStack(spacing: 4) {
+                            Text(item.value)
+                                .font(.system(size: 24, weight: .heavy))
+                                .foregroundStyle(Color.btsPink)
+                            Text(item.title)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.white)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 84)
+                        .background(Color.btsCard)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .opacity(item.unlocked ? 1 : 0.35)
+                    }
+                }
+                .padding()
+            }
+            .background(Color.btsBackground.ignoresSafeArea())
+            .navigationTitle("Достижения")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") { showAllAchievements = false }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
     private var achievementsBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 sectionLabel("ДОСТИЖЕНИЯ")
                 Spacer()
-                Text("все \(achievements.count)")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.btsPink)
+                Button {
+                    showAllAchievements = true
+                } label: {
+                    Text("все \(achievements.count)")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.btsPink)
+                }
+                .buttonStyle(.plain)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -444,6 +485,7 @@ struct ProfileView: View {
                 }
             }
         }
+        .sheet(isPresented: $showAllAchievements) { achievementsSheet }
     }
     
     private func settingsRow<Trailing: View>(_ title: String, @ViewBuilder trailing: () -> Trailing) -> some View {
