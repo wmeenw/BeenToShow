@@ -1,6 +1,5 @@
 import Foundation
 
-// Выбирает форму слова для числа: 1 день, 2 дня, 5 дней
 func plural(_ n: Int, one: String, few: String, many: String) -> String {
     let lastTwo = abs(n) % 100
     let last = abs(n) % 10
