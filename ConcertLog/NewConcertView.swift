@@ -8,9 +8,8 @@ struct NewConcertView: View {
     @State private var date = Date()
     @State private var rating = 0.0
     @State private var comment = ""
-    @State private var photoItem: PhotosPickerItem?
-    @State private var photo: Image?
-    @State private var photoData: Data?
+    @State private var photoItems: [PhotosPickerItem] = []
+    @State private var photos: [PhotoEntry] = []
     @State private var tags: [String] = []
     @State private var availableTags = ["огонь", "до слёз", "танцевала"]
     @State private var showTagAlert = false
@@ -79,34 +78,52 @@ struct NewConcertView: View {
                         Text("Фото и видео")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        HStack(spacing: 12) {
-                            PhotosPicker(selection: $photoItem, matching: .images) {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .strokeBorder(
-                                        Color.btsPink,
-                                        style: StrokeStyle(lineWidth: 1.5, dash: [6])
-                                    )
-                                    .frame(width: 100, height: 100)
-                                    .overlay(
-                                        Image(systemName: "plus")
-                                            .font(.title)
-                                            .foregroundStyle(Color.btsPink)
-                                    )
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                PhotosPicker(selection: $photoItems, maxSelectionCount: 10, matching: .images) {
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .strokeBorder(
+                                            Color.btsPink,
+                                            style: StrokeStyle(lineWidth: 1.5, dash: [6])
+                                        )
+                                        .frame(width: 100, height: 100)
+                                        .overlay(
+                                            Image(systemName: "plus")
+                                                .font(.title)
+                                                .foregroundStyle(Color.btsPink)
+                                        )
+                                }
+                                ForEach(photos) { entry in
+                                    entry.image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                        .overlay(alignment: .topTrailing) {
+                                            Button {
+                                                photos.removeAll { $0.id == entry.id }
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .symbolRenderingMode(.palette)
+                                                    .foregroundStyle(.white, .black.opacity(0.6))
+                                                    .font(.system(size: 20))
+                                            }
+                                            .padding(4)
+                                        }
+                                }
                             }
-                            photo?
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .onChange(of: photoItem) {
+                    .onChange(of: photoItems) {
+                        guard !photoItems.isEmpty else { return }
+                        let itemsToLoad = photoItems
+                        photoItems = []
                         Task {
-                            if let data = try? await photoItem?.loadTransferable(type: Data.self),
-                                let ui = UIImage(data: data) {
-                                photo = Image(uiImage: ui)
-                                photoData = ui.jpegData(compressionQuality: 0.7)
+                            for item in itemsToLoad {
+                                guard let data = try? await item.loadTransferable(type: Data.self),
+                                      let ui = UIImage(data: data) else { continue }
+                                photos.append(PhotoEntry(image: Image(uiImage: ui), data: ui.jpegData(compressionQuality: 0.7)))
                             }
                         }
                     }
@@ -200,10 +217,12 @@ struct NewConcertView: View {
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 4) {
                     Button {
+                        let keptNames = photos.compactMap { $0.existingName }
+                        let newDatas = photos.compactMap { $0.data }
                         if let concert {
-                            store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData, saleDate: concert.saleDate, reminders: concert.reminders, remindAfterConcert: concert.remindAfterConcert)
+                            store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, keptPhotoNames: keptNames, newPhotoDatas: newDatas, saleDate: concert.saleDate, reminders: concert.reminders, remindAfterConcert: concert.remindAfterConcert)
                         } else {
-                            store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
+                            store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoDatas: newDatas)
                         }
                         dismiss()
                     } label: {
@@ -283,9 +302,10 @@ struct NewConcertView: View {
                 for tag in concert.tags where !availableTags.contains(tag) {
                     availableTags.append(tag)
                 }
-                if let name = concert.photoName,
-                   let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
-                    photo = Image(uiImage: ui)
+                for name in concert.photoNames {
+                    if let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
+                        photos.append(PhotoEntry(image: Image(uiImage: ui), existingName: name))
+                    }
                 }
             }
         }
@@ -331,6 +351,13 @@ struct TagFlowLayout: Layout {
             rowHeight = max(rowHeight, size.height)
         }
     }
+}
+
+private struct PhotoEntry: Identifiable {
+    let id = UUID()
+    let image: Image
+    var existingName: String? = nil
+    var data: Data? = nil
 }
 
 #Preview {

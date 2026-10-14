@@ -9,15 +9,16 @@ import UserNotifications
             UserDefaults.standard.set(data, forKey: "concerts")
         }
     }
-    
-    func add(artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String] = [], photoData: Data? = nil, saleDate: Date? = nil, reminders: [String] = [], remindAfterConcert: Bool = false) {
-        var photoName: String? = nil
-        if let photoData {
-                let name = UUID().uuidString + ".jpg"
-                let url = URL.documentsDirectory.appending(path: name)
-                try? photoData.write(to: url)
-                photoName = name
-            }
+
+    private func writePhotos(_ datas: [Data]) -> [String] {
+        datas.map { data in
+            let name = UUID().uuidString + ".jpg"
+            try? data.write(to: URL.documentsDirectory.appending(path: name))
+            return name
+        }
+    }
+
+    func add(artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String] = [], photoDatas: [Data] = [], saleDate: Date? = nil, reminders: [String] = [], remindAfterConcert: Bool = false) {
         let newConcert = Concert(
             artist: artist,
             city: city,
@@ -25,7 +26,7 @@ import UserNotifications
             rating: rating < 0.05 ? nil : rating,
             tags: tags,
             comment: comment.isEmpty ? nil : comment,
-            photoName: photoName,
+            photoNames: writePhotos(photoDatas),
             saleDate: saleDate,
             reminders: reminders,
             remindAfterConcert: remindAfterConcert
@@ -34,18 +35,16 @@ import UserNotifications
         save()
         scheduleNotifications(for: newConcert)
     }
-    
-    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], photoData: Data? = nil, saleDate: Date?, reminders: [String], remindAfterConcert: Bool) {
+
+    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], keptPhotoNames: [String]? = nil, newPhotoDatas: [Data] = [], saleDate: Date?, reminders: [String], remindAfterConcert: Bool) {
         guard let index = concerts.firstIndex(where: { $0.id == old.id }) else { return }
-        var photoName = concerts[index].photoName
-        if let photoData {
-            if let oldName = photoName {
-                try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: oldName))
-            }
-            let name = UUID().uuidString + ".jpg"
-            try? photoData.write(to: URL.documentsDirectory.appending(path: name))
-            photoName = name
+        let existingNames = concerts[index].photoNames
+        let namesToKeep = keptPhotoNames ?? existingNames
+        let removedNames = Set(existingNames).subtracting(namesToKeep)
+        for name in removedNames {
+            try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
         }
+        let finalNames = namesToKeep + writePhotos(newPhotoDatas)
         let updatedConcert = Concert(
             id: old.id,
             artist: artist,
@@ -54,7 +53,7 @@ import UserNotifications
             rating: rating < 0.05 ? nil : rating,
             tags: tags,
             comment: comment.isEmpty ? nil : comment,
-            photoName: photoName,
+            photoNames: finalNames,
             saleDate: saleDate,
             reminders: reminders,
             remindAfterConcert: remindAfterConcert
@@ -65,7 +64,7 @@ import UserNotifications
     }
 
     func delete(_ concert: Concert) {
-        if let name = concert.photoName {
+        for name in concert.photoNames {
             try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
         }
         concerts.removeAll { $0.id == concert.id }
@@ -75,7 +74,7 @@ import UserNotifications
 
     func deleteAll() {
         for concert in concerts {
-            if let name = concert.photoName {
+            for name in concert.photoNames {
                 try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
             }
             cancelNotifications(for: concert)

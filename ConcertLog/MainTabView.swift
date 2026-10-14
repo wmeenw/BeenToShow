@@ -94,9 +94,9 @@ struct ProfileView: View {
         }
         return sorted.prefix(3).map { item in
             let photo = past
-                .filter { $0.artist == item.key && $0.photoName != nil }
+                .filter { $0.artist == item.key && !$0.photoNames.isEmpty }
                 .sorted { $0.date > $1.date }
-                .first?.photoName
+                .first?.photoNames.first
             return FavoriteArtist(name: item.key, count: item.value, photoName: photo)
         }
     }
@@ -392,7 +392,7 @@ struct ProfileView: View {
     }
     
     private var achievements: [(value: String, title: String, unlocked: Bool)] {
-        let photos = past.filter { $0.photoName != nil }.count
+        let photos = past.filter { !$0.photoNames.isEmpty }.count
         let cities = Set(past.map { $0.city }).count
         let perfect = past.contains { ($0.rating ?? 0) >= 5 }
         let maxArtistVisits = favoriteArtists.map { $0.count }.max() ?? 0

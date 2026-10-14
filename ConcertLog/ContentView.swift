@@ -1,21 +1,13 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var showPast = true
     @State private var showForm = false
-    @State private var showWaitingForm = false
     @Environment(ConcertStore.self) private var store
 
     var concerts: [Concert] {
-        if showPast {
-            return store.concerts
-                .filter { $0.isPast }
-                .sorted { $0.date > $1.date }
-        } else {
-            return store.concerts
-                .filter { !$0.isPast }
-                .sorted { $0.date < $1.date }
-        }
+        store.concerts
+            .filter { $0.isPast }
+            .sorted { $0.date > $1.date }
     }
     var pastConcerts: [Concert] { return store.concerts.filter { $0.isPast } }
     var concertsCount: Int { return pastConcerts.count }
@@ -54,22 +46,11 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 26))
                 .padding(.horizontal)
 
-                Picker("Концерты", selection: $showPast) {
-                    Text("Прошедшие").tag(true)
-                    Text("Предстоящие").tag(false)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(concerts) { concert in
                             NavigationLink {
-                                if showPast {
-                                    ConcertCardView(initial: concert)
-                                } else {
-                                    WaitingCardView(concert: concert)
-                                }
+                                ConcertCardView(initial: concert)
                             } label: {
                                 ConcertRowView(concert: concert)
                                     .concertCard()
@@ -90,11 +71,7 @@ struct ContentView: View {
             .background(Color.btsBackground.ignoresSafeArea())
             .overlay(alignment: .bottomTrailing) {
                 Button {
-                    if showPast {
-                        showForm = true
-                    } else {
-                        showWaitingForm = true
-                    }
+                    showForm = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .bold))
@@ -116,9 +93,6 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showForm) {
             NewConcertView()
-        }
-        .sheet(isPresented: $showWaitingForm) {
-            NewWaitingView()
         }
     }
 }

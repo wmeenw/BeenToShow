@@ -5,7 +5,7 @@ struct ConcertRowView: View {
     
     var body: some View {
         HStack {
-            if let photoName = concert.photoName, let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: photoName).path) {
+            if let photoName = concert.photoNames.first, let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: photoName).path) {
                 Image(uiImage: ui)
                     .resizable()
                     .scaledToFill()

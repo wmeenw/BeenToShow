@@ -8,7 +8,7 @@ struct Concert: Identifiable, Codable {
     let rating: Double?
     let tags: [String]
     let comment: String?
-    var photoName: String? = nil
+    var photoNames: [String] = []
     var saleDate: Date? = nil
     var reminders: [String] = []
     var remindAfterConcert: Bool = false
@@ -17,6 +17,10 @@ struct Concert: Identifiable, Codable {
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) ?? Date()
         return date < tomorrow
     }
+}
+
+private enum LegacyConcertCodingKeys: String, CodingKey {
+    case photoName
 }
 
 extension Concert {
@@ -29,7 +33,16 @@ extension Concert {
         rating = try container.decodeIfPresent(Double.self, forKey: .rating)
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
         comment = try container.decodeIfPresent(String.self, forKey: .comment)
-        photoName = try container.decodeIfPresent(String.self, forKey: .photoName)
+        if let names = try container.decodeIfPresent([String].self, forKey: .photoNames) {
+            photoNames = names
+        } else {
+            let legacyContainer = try decoder.container(keyedBy: LegacyConcertCodingKeys.self)
+            if let legacy = try legacyContainer.decodeIfPresent(String.self, forKey: .photoName) {
+                photoNames = [legacy]
+            } else {
+                photoNames = []
+            }
+        }
         saleDate = try container.decodeIfPresent(Date.self, forKey: .saleDate)
         reminders = try container.decodeIfPresent([String].self, forKey: .reminders) ?? []
         remindAfterConcert = try container.decodeIfPresent(Bool.self, forKey: .remindAfterConcert) ?? false

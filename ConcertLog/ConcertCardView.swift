@@ -45,7 +45,7 @@ struct ConcertCardView: View {
     var body: some View {
         VStack {
             ZStack (alignment: .bottomLeading) {
-                if let photoName = concert.photoName,
+                if let photoName = concert.photoNames.first,
                    let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: photoName).path) {
                     Color.clear
                         .overlay {
@@ -101,6 +101,34 @@ struct ConcertCardView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
+            if concert.photoNames.count > 1 {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("МОИ ФОТО И ВИДЕО")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Color.white.opacity(0.45))
+                        Spacer()
+                        Text("Все \(concert.photoNames.count)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.btsPink)
+                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(concert.photoNames, id: \.self) { name in
+                                if let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
+                                    Image(uiImage: ui)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
             if let comment = concert.comment {
                 HStack(spacing: 12) {
                     Rectangle()
