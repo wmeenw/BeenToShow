@@ -201,7 +201,7 @@ struct NewConcertView: View {
                 VStack(spacing: 4) {
                     Button {
                         if let concert {
-                            store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
+                            store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData, saleDate: concert.saleDate, reminders: concert.reminders, remindAfterConcert: concert.remindAfterConcert)
                         } else {
                             store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
                         }

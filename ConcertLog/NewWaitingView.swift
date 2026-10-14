@@ -4,9 +4,75 @@ import SwiftUI
 struct NewWaitingView: View {
     @State private var artist = ""
     @State private var city = ""
-    @State private var date = Date()
+    @State private var date = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+    @State private var saleEnabled = false
+    @State private var saleDate = Date()
+    @State private var reminders: [String] = []
+    @State private var remindAfterConcert = false
+    var concert: Concert? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
+    
+    private var tomorrow: Date {
+        Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+    }
+    
+    private let reminderOptions = ["За неделю", "За день", "За час"]
+    
+    private func reminderPill(_ title: String) -> some View {
+        let selected = reminders.contains(title)
+        return Button {
+            if selected {
+                reminders.removeAll { $0 == title }
+            } else {
+                reminders.append(title)
+            }
+        } label: {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(selected ? Color.black : Color.white)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
+                .background(selected ? Color.btsLime : Color.clear)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(selected ? 0 : 0.25), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func save() {
+        let sale = saleEnabled ? saleDate : nil
+        if let concert {
+            store.update(
+                concert,
+                artist: artist,
+                city: city,
+                date: date,
+                rating: concert.rating ?? 0,
+                comment: concert.comment ?? "",
+                tags: concert.tags,
+                saleDate: sale,
+                reminders: reminders,
+                remindAfterConcert: remindAfterConcert
+            )
+        } else {
+            store.add(
+                artist: artist,
+                city: city,
+                date: date,
+                rating: 0,
+                comment: "",
+                saleDate: sale,
+                reminders: reminders,
+                remindAfterConcert: remindAfterConcert
+            )
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -34,19 +100,53 @@ struct NewWaitingView: View {
                         Text("Когда")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        DatePicker("Дата", selection: $date, in: Date()..., displayedComponents: .date)
+                        DatePicker("Дата", selection: $date, in: tomorrow..., displayedComponents: .date)
                             .labelsHidden()
                     }
                     .inputCard()
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $saleEnabled) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Старт продажи билетов")
+                                    .font(.headline)
+                                Text("Указать")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .tint(Color.btsPink)
+                        if saleEnabled {
+                            DatePicker("Дата и время", selection: $saleDate, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
+                        }
+                    }
+                    .inputCard()
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Напомнить")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        TagFlowLayout(spacing: 8) {
+                            ForEach(reminderOptions, id: \.self) { title in
+                                reminderPill(title)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Toggle("Напомнить записать впечатление после концерта", isOn: $remindAfterConcert)
+                        .tint(Color.btsPink)
+                        .inputCard()
                 }
                 .padding(.horizontal)
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
-                    store.add(artist: artist, city: city, date: date, rating: 0, comment: "")
+                    save()
                     dismiss()
                 } label: {
-                    Text("Добавить в ожидаемые")
+                    Text(concert == nil ? "Добавить в ожидаемые" : "Сохранить изменения")
                         .font(.headline)
                         .foregroundStyle(Color.white)
                         .frame(maxWidth: .infinity)
@@ -65,7 +165,7 @@ struct NewWaitingView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-            .navigationTitle("Ждём концерт")
+            .navigationTitle(concert == nil ? "Ждём концерт" : "Редактирование")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -79,6 +179,19 @@ struct NewWaitingView: View {
             .background(Color.btsBackground.ignoresSafeArea())
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            if let concert {
+                artist = concert.artist
+                city = concert.city
+                date = concert.date
+                if let sale = concert.saleDate {
+                    saleEnabled = true
+                    saleDate = sale
+                }
+                reminders = concert.reminders
+                remindAfterConcert = concert.remindAfterConcert
+            }
+        }
     }
 }
 

@@ -17,7 +17,7 @@ struct ContentView: View {
                 .sorted { $0.date < $1.date }
         }
     }
-    var pastConcerts: [Concert] { return store.concerts.filter {$0.date < Calendar.current.startOfDay(for: Date())} }
+    var pastConcerts: [Concert] { return store.concerts.filter { $0.isPast } }
     var concertsCount: Int { return pastConcerts.count }
     var citiesCount: Int { return Set(pastConcerts.map { $0.city }).count }
     var averageRating: Double {

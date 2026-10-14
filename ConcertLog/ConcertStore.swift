@@ -9,7 +9,7 @@ import Foundation
         }
     }
     
-    func add(artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String] = [], photoData: Data? = nil) {
+    func add(artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String] = [], photoData: Data? = nil, saleDate: Date? = nil, reminders: [String] = [], remindAfterConcert: Bool = false) {
         var photoName: String? = nil
         if let photoData {
                 let name = UUID().uuidString + ".jpg"
@@ -25,12 +25,15 @@ import Foundation
                 rating: rating < 0.05 ? nil : rating,
                 tags: tags,
                 comment: comment.isEmpty ? nil : comment,
-                photoName: photoName
+                photoName: photoName,
+                saleDate: saleDate,
+                reminders: reminders,
+                remindAfterConcert: remindAfterConcert
             ))
         save()
     }
     
-    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], photoData: Data? = nil) {
+    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], photoData: Data? = nil, saleDate: Date?, reminders: [String], remindAfterConcert: Bool) {
         guard let index = concerts.firstIndex(where: { $0.id == old.id }) else { return }
         var photoName = concerts[index].photoName
         if let photoData {
@@ -49,7 +52,10 @@ import Foundation
             rating: rating < 0.05 ? nil : rating,
             tags: tags,
             comment: comment.isEmpty ? nil : comment,
-            photoName: photoName
+            photoName: photoName,
+            saleDate: saleDate,
+            reminders: reminders,
+            remindAfterConcert: remindAfterConcert
         )
         save()
     }
@@ -63,9 +69,11 @@ import Foundation
     }
     
     init() {
-        if let concert = UserDefaults.standard.data(forKey: "concerts"),
-           let saved = try? JSONDecoder().decode([Concert].self, from: concert) {
+        guard let stored = UserDefaults.standard.data(forKey: "concerts") else { return }
+        if let saved = try? JSONDecoder().decode([Concert].self, from: stored) {
             concerts = saved
+        } else {
+            UserDefaults.standard.set(stored, forKey: "concerts_backup")
         }
     }
 }

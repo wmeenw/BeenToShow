@@ -9,8 +9,30 @@ struct Concert: Identifiable, Codable {
     let tags: [String]
     let comment: String?
     var photoName: String? = nil
+    var saleDate: Date? = nil
+    var reminders: [String] = []
+    var remindAfterConcert: Bool = false
     var isPast: Bool {
-        Calendar.current.startOfDay(for: Date()) > date
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) ?? Date()
+        return date < tomorrow
+    }
+}
+
+extension Concert {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        artist = try container.decode(String.self, forKey: .artist)
+        city = try container.decode(String.self, forKey: .city)
+        date = try container.decode(Date.self, forKey: .date)
+        rating = try container.decodeIfPresent(Double.self, forKey: .rating)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        comment = try container.decodeIfPresent(String.self, forKey: .comment)
+        photoName = try container.decodeIfPresent(String.self, forKey: .photoName)
+        saleDate = try container.decodeIfPresent(Date.self, forKey: .saleDate)
+        reminders = try container.decodeIfPresent([String].self, forKey: .reminders) ?? []
+        remindAfterConcert = try container.decodeIfPresent(Bool.self, forKey: .remindAfterConcert) ?? false
     }
 }
 
