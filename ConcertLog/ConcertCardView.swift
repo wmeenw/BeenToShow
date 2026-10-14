@@ -6,10 +6,22 @@ struct ConcertCardView: View {
     var body: some View {
         VStack {
             ZStack (alignment: .bottomLeading) {
-                LinearGradient (
-                    colors: [Color.btsPink, Color.btsBackground],
-                    startPoint: .top,
-                    endPoint: UnitPoint.bottom)
+                if let photoName = concert.photoName,
+                   let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: photoName).path) {
+                    Color.clear
+                        .overlay {
+                            Image(uiImage: ui)
+                                .resizable()
+                                .scaledToFill()
+                        }
+                        .clipped()
+                } else {
+                    LinearGradient (
+                        colors: [Color.btsPink, Color.btsBackground],
+                        startPoint: .top,
+                        endPoint: UnitPoint.bottom)
+                }
+                LinearGradient(colors: [Color.clear, Color.btsBackground], startPoint: .top, endPoint: .bottom)
                 VStack(alignment: .leading) {
                     let been = Calendar.current.startOfDay(for: Date()) > concert.date ? "BEEN TO SHOW" : "UPCOMING"
                     Text(been)
