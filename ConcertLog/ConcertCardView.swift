@@ -8,6 +8,39 @@ struct ConcertCardView: View {
     @State private var showEdit = false
     @Environment(ConcertStore.self) private var store
 
+    private var ratingView: some View {
+        HStack {
+            if let rating = concert.rating {
+                HStack {
+                    ForEach(0..<Int(rating.rounded()), id: \.self) { _ in
+                        Image(systemName: "star.fill")
+                    }
+                    .foregroundStyle(Color.btsPink)
+                    Text(String(format: "%.1f", rating))
+                        .font(.system(size: 21, weight: .bold))
+                        .fixedSize()
+                }
+            }
+        }
+    }
+    
+    private func tagPill(_ tag: String) -> some View {
+        Text(tag)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                LinearGradient(
+                    colors: [Color.btsPink, Color.btsViolet],
+                    startPoint: .leading,
+                    endPoint: .trailing)
+            )
+            .clipShape(Capsule())
+    }
+    
     var body: some View {
         VStack {
             ZStack (alignment: .bottomLeading) {
@@ -46,40 +79,26 @@ struct ConcertCardView: View {
             .frame(height: 333)
             .ignoresSafeArea(edges: .top)
            
-            HStack(spacing: 16) {
-                HStack {
-                    if let rating = concert.rating {
-                        HStack {
-                            ForEach(0..<Int(rating.rounded()), id: \.self) { _ in
-                                Image(systemName: "star.fill")
-                            }
-                            .foregroundStyle(Color.btsPink)
-                            Text(String(format: "%.1f", rating))
-                                .font(.system(size: 21, weight: .bold))
-                                .fixedSize()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) {
+                    ratingView
+                    Spacer()
+                    HStack(spacing: 8) {
+                        ForEach(concert.tags, id: \.self) { tag in
+                            tagPill(tag)
                         }
                     }
                 }
-                Spacer()
-                
-                HStack {
-                    ForEach(concert.tags, id: \.self) { tag in
-                        Text(tag)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.btsPink, Color.btsViolet],
-                                    startPoint: .leading,
-                                    endPoint: .trailing)
-                            )
-                            .clipShape(Capsule())
+                VStack(alignment: .leading, spacing: 12) {
+                    ratingView
+                    TagFlowLayout(spacing: 8) {
+                        ForEach(concert.tags, id: \.self) { tag in
+                            tagPill(tag)
+                        }
                     }
                 }
             }
-    
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
             if let comment = concert.comment {
                 HStack(spacing: 12) {

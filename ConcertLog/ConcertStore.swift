@@ -9,7 +9,7 @@ import Foundation
         }
     }
     
-    func add(artist: String, city: String, date: Date, rating: Double, comment: String, photoData: Data? = nil) {
+    func add(artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String] = [], photoData: Data? = nil) {
         var photoName: String? = nil
         if let photoData {
                 let name = UUID().uuidString + ".jpg"
@@ -23,17 +23,34 @@ import Foundation
                 city: city,
                 date: date,
                 rating: rating < 0.05 ? nil : rating,
-                tags: [],
+                tags: tags,
                 comment: comment.isEmpty ? nil : comment,
                 photoName: photoName
             ))
         save()
     }
     
-    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String) {
-        if let index = concerts.firstIndex(where: { $0.id == old.id }) {
-            concerts[index] = Concert(id: old.id, artist: artist, city: city, date: date, rating: rating < 0.05 ? nil : rating, tags: old.tags, comment: comment.isEmpty ? nil : comment, photoName: old.photoName)
+    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], photoData: Data? = nil) {
+        guard let index = concerts.firstIndex(where: { $0.id == old.id }) else { return }
+        var photoName = concerts[index].photoName
+        if let photoData {
+            if let oldName = photoName {
+                try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: oldName))
             }
+            let name = UUID().uuidString + ".jpg"
+            try? photoData.write(to: URL.documentsDirectory.appending(path: name))
+            photoName = name
+        }
+        concerts[index] = Concert(
+            id: old.id,
+            artist: artist,
+            city: city,
+            date: date,
+            rating: rating < 0.05 ? nil : rating,
+            tags: tags,
+            comment: comment.isEmpty ? nil : comment,
+            photoName: photoName
+        )
         save()
     }
     

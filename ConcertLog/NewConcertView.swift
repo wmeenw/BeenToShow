@@ -11,16 +11,63 @@ struct NewConcertView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var photo: Image?
     @State private var photoData: Data?
+    @State private var tags: [String] = []
+    @State private var availableTags = ["огонь", "до слёз", "танцевала"]
+    @State private var showTagAlert = false
+    @State private var newTag = ""
     var concert: Concert? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
     
-    // Верхняя граница даты: для будущего концерта при редактировании можно выбрать любую дату
     private var maxDate: Date {
         if let concert, !concert.isPast {
             return Date.distantFuture
         }
         return Date()
+    }
+    
+    private func tagPill(_ tag: String) -> some View {
+        let selected = tags.contains(tag)
+        return Button {
+            if selected {
+                tags.removeAll { $0 == tag }
+            } else {
+                tags.append(tag)
+            }
+        } label: {
+            Text(tag)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
+                .background(
+                    LinearGradient(
+                        colors: selected ? [Color.btsPink, Color.btsViolet] : [Color.clear, Color.clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(selected ? 0 : 0.25), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func addCustomTag() {
+        let name = newTag.trimmingCharacters(in: .whitespacesAndNewlines)
+        newTag = ""
+        guard !name.isEmpty else { return }
+        if !availableTags.contains(name) {
+            availableTags.append(name)
+        }
+        if !tags.contains(name) {
+            tags.append(name)
+        }
     }
     
     var body: some View {
@@ -108,6 +155,31 @@ struct NewConcertView: View {
                     }
                     .inputCard()
                     
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Вайб")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        TagFlowLayout(spacing: 8) {
+                            ForEach(availableTags, id: \.self) { tag in
+                                tagPill(tag)
+                            }
+                            Button {
+                                showTagAlert = true
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(Color.btsPink)
+                                    .frame(width: 38, height: 38)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.btsPink, lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Комментарий")
                             .font(.subheadline)
@@ -123,9 +195,10 @@ struct NewConcertView: View {
             .safeAreaInset(edge: .bottom) {
                 Button {
                     if let concert {
-                        store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment)
+                        store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
                     } else {
-                        store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, photoData: photoData)}
+                        store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
+                    }
                     dismiss()
                 } label: {
                     Text(concert == nil ? "Сохранить впечатление" : "Сохранить изменения")
@@ -161,6 +234,16 @@ struct NewConcertView: View {
             .background(Color.btsBackground.ignoresSafeArea())
         }
         .preferredColorScheme(.dark)
+        .alert("Свой тег", isPresented: $showTagAlert) {
+            TextField("Например, мурашки", text: $newTag)
+                .textInputAutocapitalization(.never)
+            Button("Добавить") {
+                addCustomTag()
+            }
+            Button("Отмена", role: .cancel) {
+                newTag = ""
+            }
+        }
         .onAppear() {
             if let concert {
                 artist = concert.artist
@@ -168,7 +251,56 @@ struct NewConcertView: View {
                 date = concert.date
                 rating = concert.rating ?? 0
                 comment = concert.comment ?? ""
+                tags = concert.tags
+                for tag in concert.tags where !availableTags.contains(tag) {
+                    availableTags.append(tag)
+                }
+                if let name = concert.photoName,
+                   let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
+                    photo = Image(uiImage: ui)
+                }
             }
+        }
+    }
+}
+
+struct TagFlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var width: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > 0 && x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            width = max(width, x - spacing)
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: width, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > bounds.minX && x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }
