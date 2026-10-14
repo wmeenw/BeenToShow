@@ -6,6 +6,7 @@ struct ConcertCardView: View {
         store.concerts.first(where: { $0.id == initial.id }) ?? initial
     }
     @State private var showEdit = false
+    @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
 
     private var ratingView: some View {
@@ -139,6 +140,11 @@ struct ConcertCardView: View {
         .background(Color.btsBackground.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .toolbar(.hidden, for: .tabBar)
+        .onChange(of: store.concerts.contains { $0.id == initial.id }) { _, exists in
+            if !exists {
+                dismiss()
+            }
+        }
     }
 }
 

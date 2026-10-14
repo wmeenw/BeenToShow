@@ -14,6 +14,7 @@ struct NewConcertView: View {
     @State private var tags: [String] = []
     @State private var availableTags = ["огонь", "до слёз", "танцевала"]
     @State private var showTagAlert = false
+    @State private var showDeleteConfirm = false
     @State private var newTag = ""
     var concert: Concert? = nil
     @Environment(\.dismiss) private var dismiss
@@ -137,23 +138,27 @@ struct NewConcertView: View {
                     }
                     .inputCard()
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Оценка")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        HStack {
-                            Text(String(format: "%.1f", rating))
-                                    .font(.title2)
-                            Spacer()
-                            ForEach(1...5, id: \.self) { i in
-                                Image(systemName: Double(i) <= rating ? "star.fill" : "star")
-                                    .foregroundStyle(Color.btsPink)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .bottom) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Оценка")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 4) {
+                                    ForEach(1...5, id: \.self) { i in
+                                        Image(systemName: Double(i) <= rating ? "star.fill" : "star")
+                                            .foregroundStyle(Color.btsPink)
+                                    }
+                                }
                             }
+                            Spacer()
+                            Text(String(format: "%.1f", rating))
+                                .font(.system(size: 40, weight: .heavy))
                         }
                         Slider(value: $rating, in: 0...5, step: 0.1)
                             .tint(Color.btsPink)
                     }
-                    .inputCard()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Вайб")
@@ -193,30 +198,44 @@ struct NewConcertView: View {
                 .padding(.horizontal)
             }
             .safeAreaInset(edge: .bottom) {
-                Button {
-                    if let concert {
-                        store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
-                    } else {
-                        store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
-                    }
-                    dismiss()
-                } label: {
-                    Text(concert == nil ? "Сохранить впечатление" : "Сохранить изменения")
-                        .font(.headline)
-                        .foregroundStyle(Color.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.btsPink, Color.btsViolet],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                VStack(spacing: 4) {
+                    Button {
+                        if let concert {
+                            store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
+                        } else {
+                            store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoData: photoData)
+                        }
+                        dismiss()
+                    } label: {
+                        Text(concert == nil ? "Сохранить впечатление" : "Сохранить изменения")
+                            .font(.headline)
+                            .foregroundStyle(Color.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.btsPink, Color.btsViolet],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .clipShape(Capsule())
+                            .clipShape(Capsule())
+                    }
+                    .disabled(artist.isEmpty || city.isEmpty)
+                    .opacity(artist.isEmpty || city.isEmpty ? 0.4 : 1)
+                    
+                    if concert != nil {
+                        Button {
+                            showDeleteConfirm = true
+                        } label: {
+                            Text("Удалить")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(Color.red.opacity(0.85))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                    }
                 }
-                .disabled(artist.isEmpty || city.isEmpty)
-                .opacity(artist.isEmpty || city.isEmpty ? 0.4 : 1)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
@@ -234,6 +253,15 @@ struct NewConcertView: View {
             .background(Color.btsBackground.ignoresSafeArea())
         }
         .preferredColorScheme(.dark)
+        .confirmationDialog("Удалить концерт?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Удалить", role: .destructive) {
+                if let concert {
+                    store.delete(concert)
+                }
+                dismiss()
+            }
+            Button("Отмена", role: .cancel) {}
+        }
         .alert("Свой тег", isPresented: $showTagAlert) {
             TextField("Например, мурашки", text: $newTag)
                 .textInputAutocapitalization(.never)

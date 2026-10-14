@@ -54,6 +54,14 @@ import Foundation
         save()
     }
     
+    func delete(_ concert: Concert) {
+        if let name = concert.photoName {
+            try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
+        }
+        concerts.removeAll { $0.id == concert.id }
+        save()
+    }
+    
     init() {
         if let concert = UserDefaults.standard.data(forKey: "concerts"),
            let saved = try? JSONDecoder().decode([Concert].self, from: concert) {
