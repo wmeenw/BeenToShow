@@ -278,7 +278,7 @@ struct ProfileView: View {
             }
         }
         .frame(width: 44, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(Circle())
     }
     
     private var artistsBlock: some View {
@@ -392,17 +392,29 @@ struct ProfileView: View {
     }
     
     private var achievements: [(value: String, title: String, unlocked: Bool)] {
-        let photos = store.concerts.filter { $0.photoName != nil }.count
+        let photos = past.filter { $0.photoName != nil }.count
         let cities = Set(past.map { $0.city }).count
         let perfect = past.contains { ($0.rating ?? 0) >= 5 }
+        let maxArtistVisits = favoriteArtists.map { $0.count }.max() ?? 0
+        let distinctTags = Set(past.flatMap { $0.tags }).count
+        let oneYear: TimeInterval = 365 * 24 * 60 * 60
+        let withUs = past.map { $0.date }.min().map { Date().timeIntervalSince($0) >= oneYear } ?? false
         return [
             ("1", "первый\nконцерт", past.count >= 1),
+            ("5", "концертов", past.count >= 5),
+            ("10", "концертов", past.count >= 10),
+            ("25", "концертов", past.count >= 25),
+            ("3", "городов", cities >= 3),
             ("5", "городов", cities >= 5),
+            ("10", "городов", cities >= 10),
             ("★", "идеал 5.0", perfect),
-            ("10", "фото-архив", photos >= 10)
+            ("10", "фото-архив", photos >= 10),
+            ("3", "с одним\nартистом", maxArtistVisits >= 3),
+            ("5", "видов\nвайба", distinctTags >= 5),
+            ("1", "год\nв дневнике", withUs)
         ]
     }
-    
+
     private var achievementsBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -412,22 +424,23 @@ struct ProfileView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.btsPink)
             }
-            HStack(spacing: 10) {
-                ForEach(achievements, id: \.title) { item in
-                    VStack(spacing: 4) {
-                        Text(item.value)
-                            .font(.system(size: 24, weight: .heavy))
-                            .foregroundStyle(Color.btsPink)
-                        Text(item.title)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color.white)
-                            .multilineTextAlignment(.center)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Array(achievements.enumerated()), id: \.offset) { _, item in
+                        VStack(spacing: 4) {
+                            Text(item.value)
+                                .font(.system(size: 24, weight: .heavy))
+                                .foregroundStyle(Color.btsPink)
+                            Text(item.title)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.white)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(width: 80, height: 84)
+                        .background(Color.btsCard)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .opacity(item.unlocked ? 1 : 0.35)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 84)
-                    .background(Color.btsCard)
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
-                    .opacity(item.unlocked ? 1 : 0.35)
                 }
             }
         }
