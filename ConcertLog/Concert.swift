@@ -9,6 +9,9 @@ struct Concert: Identifiable, Codable {
     let tags: [String]
     let comment: String?
     var photoName: String? = nil
+    var isPast: Bool {
+        Calendar.current.startOfDay(for: Date()) > date
+    }
 }
 
 func makeDate(day: Int, month: Int, year: Int) -> Date {

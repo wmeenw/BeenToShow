@@ -23,7 +23,7 @@ struct ConcertCardView: View {
                 }
                 LinearGradient(colors: [Color.clear, Color.btsBackground], startPoint: .top, endPoint: .bottom)
                 VStack(alignment: .leading) {
-                    let been = Calendar.current.startOfDay(for: Date()) > concert.date ? "BEEN TO SHOW" : "UPCOMING"
+                    let been = concert.isPast ? "BEEN TO SHOW" : "UPCOMING"
                     Text(been)
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundStyle(.black)

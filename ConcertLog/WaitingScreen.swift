@@ -5,7 +5,7 @@ struct WaitingScreen: View {
     @Environment(ConcertStore.self) private var store
     var upcoming: [Concert] {
         store.concerts
-            .filter { $0.date >= Calendar.current.startOfDay(for: Date()) }
+            .filter { $0.isPast }
             .sorted { $0.date < $1.date }
     }
     

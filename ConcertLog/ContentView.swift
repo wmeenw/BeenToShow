@@ -7,14 +7,13 @@ struct ContentView: View {
     @Environment(ConcertStore.self) private var store
 
     var concerts: [Concert] {
-        let startOfToday = Calendar.current.startOfDay(for: Date())
         if showPast {
             return store.concerts
-                .filter { $0.date < startOfToday }
+                .filter { $0.isPast }
                 .sorted { $0.date > $1.date }
         } else {
             return store.concerts
-                .filter { $0.date >= startOfToday }
+                .filter { !$0.isPast }
                 .sorted { $0.date < $1.date }
         }
     }
