@@ -15,6 +15,14 @@ struct NewConcertView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
     
+    // Верхняя граница даты: для будущего концерта при редактировании можно выбрать любую дату
+    private var maxDate: Date {
+        if let concert, !concert.isPast {
+            return Date.distantFuture
+        }
+        return Date()
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -77,7 +85,7 @@ struct NewConcertView: View {
                         Text("Когда")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        DatePicker("Дата", selection: $date, in: ...Date(), displayedComponents: .date)
+                        DatePicker("Дата", selection: $date, in: Date.distantPast...maxDate, displayedComponents: .date)
                             .labelsHidden()
                     }
                     .inputCard()
@@ -120,7 +128,7 @@ struct NewConcertView: View {
                         store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, photoData: photoData)}
                     dismiss()
                 } label: {
-                    Text("Сохранить впечатление")
+                    Text(concert == nil ? "Сохранить впечатление" : "Сохранить изменения")
                         .font(.headline)
                         .foregroundStyle(Color.white)
                         .frame(maxWidth: .infinity)
