@@ -66,7 +66,7 @@ struct ContentView: View {
                         ForEach(concerts) { concert in
                             NavigationLink {
                                 if showPast {
-                                    ConcertCardView(concert: concert)
+                                    ConcertCardView(initial: concert)
                                 } else {
                                     WaitingCardView(concert: concert)
                                 }

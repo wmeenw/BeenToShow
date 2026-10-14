@@ -139,7 +139,7 @@ struct NewConcertView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-            .navigationTitle("Новое впечатление")
+            .navigationTitle(concert == nil ? "Новое впечатление" : "Редактирование")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

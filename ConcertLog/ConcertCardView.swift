@@ -1,8 +1,12 @@
 import SwiftUI
 
 struct ConcertCardView: View {
-    let concert: Concert
+    let initial: Concert
+    var concert: Concert {
+        store.concerts.first(where: { $0.id == initial.id }) ?? initial
+    }
     @State private var showEdit = false
+    @Environment(ConcertStore.self) private var store
 
     var body: some View {
         VStack {
@@ -120,5 +124,6 @@ struct ConcertCardView: View {
 }
 
 #Preview {
-    ConcertCardView(concert: sampleConcerts[0])
+    ConcertCardView(initial: sampleConcerts[0])
+        .environment(ConcertStore())
 }
