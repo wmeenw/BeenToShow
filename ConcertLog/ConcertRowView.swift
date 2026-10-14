@@ -21,7 +21,7 @@ struct ConcertRowView: View {
                     .frame(width: 48, height: 48)
             }
             VStack (alignment: .leading) {
-                Text(concert.artist).font(.headline)
+                Text(concert.artist).font(.unbounded(15, .bold)).lineLimit(1).minimumScaleFactor(0.7)
                 Text("\(concert.city) · \(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))")
                     .foregroundStyle(.secondary)
             }

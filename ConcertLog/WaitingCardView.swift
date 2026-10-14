@@ -54,7 +54,7 @@ struct WaitingCardView : View {
             Image(systemName: current.reminders.isEmpty ? "bell.slash" : "bell.fill")
                 .foregroundStyle(current.reminders.isEmpty ? Color.white.opacity(0.4) : Color.btsLime)
             Text(reminderStatusText)
-                .font(.system(size: 13, weight: .medium))
+                .font(.onest(13, .medium))
                 .foregroundStyle(current.reminders.isEmpty ? Color.white.opacity(0.4) : Color.white.opacity(0.8))
         }
         .padding(.horizontal)
@@ -68,14 +68,14 @@ struct WaitingCardView : View {
             ZStack(alignment: .topLeading) {
                 if notes.isEmpty {
                     Text("Место, ряд, с кем идёшь, что взять")
-                        .font(.system(size: 15))
+                        .font(.onest(15))
                         .foregroundStyle(.white.opacity(0.3))
                         .padding(.top, 8)
                         .padding(.leading, 5)
                 }
                 TextEditor(text: $notes)
                     .scrollContentBackground(.hidden)
-                    .font(.system(size: 15))
+                    .font(.onest(15))
                     .foregroundStyle(.white)
             }
             .frame(minHeight: 100)
@@ -93,15 +93,15 @@ struct WaitingCardView : View {
             if let sale = current.saleDate {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Старт продаж")
-                        .font(.system(size: 13))
+                        .font(.onest(13))
                         .foregroundStyle(.white.opacity(0.5))
                     Text(sale.formatted(.dateTime.day().month(.wide).hour().minute()))
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.onest(17, .semibold))
                         .foregroundStyle(.white)
                     if sale > Date() {
                         let days = max(0, Calendar.current.dateComponents([.day], from: Date(), to: sale).day ?? 0)
                         Text(days > 0 ? "через \(days) \(daysWord(days))" : "уже сегодня")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.onest(13, .semibold))
                             .foregroundStyle(Color.btsLime)
                     }
                 }
@@ -109,12 +109,12 @@ struct WaitingCardView : View {
             if !current.reminders.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Напомнить")
-                        .font(.system(size: 13))
+                        .font(.onest(13))
                         .foregroundStyle(.white.opacity(0.5))
                     TagFlowLayout(spacing: 8) {
                         ForEach(current.reminders, id: \.self) { reminder in
                             Text(reminder)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.onest(14, .semibold))
                                 .foregroundStyle(.black)
                                 .lineLimit(1)
                                 .fixedSize()
@@ -131,7 +131,7 @@ struct WaitingCardView : View {
                     Image(systemName: "bell.fill")
                         .foregroundStyle(Color.btsLime)
                     Text("Напомню записать впечатление после концерта")
-                        .font(.system(size: 14))
+                        .font(.onest(14))
                         .foregroundStyle(.white.opacity(0.8))
                 }
             }
@@ -144,7 +144,7 @@ struct WaitingCardView : View {
     func tile(value: Int, title: String) -> some View {
         VStack(spacing: 4) {
             Text(String(format: "%02d", value))
-                .font(.system(size: 32, weight: .heavy))
+                .font(.unbounded(32, .bold))
                 .foregroundStyle(Color.btsLime)
             Text(title)
                 .font(.caption)
@@ -168,7 +168,7 @@ struct WaitingCardView : View {
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundStyle(Color.btsLime)
                     Text(current.artist)
-                        .font(.system(size: 30, weight: .heavy))
+                        .font(.unbounded(30, .bold))
                         .foregroundStyle(.white)
                     Text("\(current.city) · \(current.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))")
                         .foregroundStyle(.white.opacity(0.5))
@@ -209,7 +209,7 @@ struct WaitingCardView : View {
                     showEdit = true
                 } label: {
                     Text("Изменить")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.onest(17, .semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)

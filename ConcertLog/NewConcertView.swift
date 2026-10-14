@@ -10,6 +10,10 @@ struct NewConcertView: View {
     @State private var comment = ""
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var photos: [PhotoEntry] = []
+    @State private var videoItems: [PhotosPickerItem] = []
+    @State private var videos: [VideoEntry] = []
+    @State private var videoNotice: String? = nil
+    @State private var didLoadConcert = false
     @State private var tags: [String] = []
     @State private var availableTags = ["огонь", "до слёз", "танцевала"]
     @State private var showTagAlert = false
@@ -36,7 +40,7 @@ struct NewConcertView: View {
             }
         } label: {
             Text(tag)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.onest(15, .semibold))
                 .foregroundStyle(Color.white)
                 .lineLimit(1)
                 .fixedSize()
@@ -93,6 +97,46 @@ struct NewConcertView: View {
                                                 .foregroundStyle(Color.btsPink)
                                         )
                                 }
+                                PhotosPicker(selection: $videoItems, maxSelectionCount: max(1, VideoLimits.maxCount - videos.count), matching: .videos) {
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .strokeBorder(
+                                            Color.btsPink,
+                                            style: StrokeStyle(lineWidth: 1.5, dash: [6])
+                                        )
+                                        .frame(width: 100, height: 100)
+                                        .overlay(
+                                            Image(systemName: "video.badge.plus")
+                                                .font(.title)
+                                                .foregroundStyle(Color.btsPink)
+                                        )
+                                }
+                                .disabled(videos.count >= VideoLimits.maxCount)
+                                .opacity(videos.count >= VideoLimits.maxCount ? 0.4 : 1)
+                                ForEach(videos) { entry in
+                                    Image(uiImage: entry.thumbnail ?? UIImage())
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .background(Color.btsCard)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                        .overlay {
+                                            Image(systemName: "play.circle.fill")
+                                                .font(.system(size: 32))
+                                                .foregroundStyle(.white.opacity(0.9))
+                                        }
+                                        .overlay(alignment: .topTrailing) {
+                                            Button {
+                                                if let temp = entry.newURL { try? FileManager.default.removeItem(at: temp) }
+                                                videos.removeAll { $0.id == entry.id }
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .symbolRenderingMode(.palette)
+                                                    .foregroundStyle(.white, .black.opacity(0.6))
+                                                    .font(.system(size: 20))
+                                            }
+                                            .padding(4)
+                                        }
+                                }
                                 ForEach(photos) { entry in
                                     entry.image
                                         .resizable()
@@ -128,6 +172,29 @@ struct NewConcertView: View {
                         }
                     }
                     
+                    .onChange(of: videoItems) {
+                        guard !videoItems.isEmpty else { return }
+                        let itemsToLoad = videoItems
+                        videoItems = []
+                        Task {
+                            var tooLong = false
+                            for item in itemsToLoad {
+                                guard videos.count < VideoLimits.maxCount,
+                                      let picked = try? await item.loadTransferable(type: PickedVideo.self) else { continue }
+                                if await VideoTools.duration(of: picked.url) > VideoLimits.maxSeconds {
+                                    try? FileManager.default.removeItem(at: picked.url)
+                                    tooLong = true
+                                    continue
+                                }
+                                let thumb = await VideoTools.thumbnail(of: picked.url)
+                                videos.append(VideoEntry(thumbnail: thumb, newURL: picked.url))
+                            }
+                            if tooLong {
+                                videoNotice = "Видео длиннее \(Int(VideoLimits.maxSeconds)) секунд не добавлено."
+                            }
+                        }
+                    }
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Исполнитель")
                             .font(.subheadline)
@@ -170,7 +237,7 @@ struct NewConcertView: View {
                             }
                             Spacer()
                             Text(String(format: "%.1f", rating))
-                                .font(.system(size: 40, weight: .heavy))
+                                .font(.unbounded(40, .bold))
                         }
                         Slider(value: $rating, in: 0...5, step: 0.1)
                             .tint(Color.btsPink)
@@ -219,10 +286,12 @@ struct NewConcertView: View {
                     Button {
                         let keptNames = photos.compactMap { $0.existingName }
                         let newDatas = photos.compactMap { $0.data }
+                        let keptVideos = videos.compactMap { $0.existingName }
+                        let newVideos = videos.compactMap { $0.newURL }
                         if let concert {
-                            store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, keptPhotoNames: keptNames, newPhotoDatas: newDatas, saleDate: concert.saleDate, reminders: concert.reminders, remindAfterConcert: concert.remindAfterConcert)
+                            store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, keptPhotoNames: keptNames, newPhotoDatas: newDatas, keptVideoNames: keptVideos, newVideoURLs: newVideos, saleDate: concert.saleDate, reminders: concert.reminders, remindAfterConcert: concert.remindAfterConcert)
                         } else {
-                            store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoDatas: newDatas)
+                            store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, tags: tags, photoDatas: newDatas, videoURLs: newVideos)
                         }
                         dismiss()
                     } label: {
@@ -248,7 +317,7 @@ struct NewConcertView: View {
                             showDeleteConfirm = true
                         } label: {
                             Text("Удалить")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.onest(17, .semibold))
                                 .foregroundStyle(Color.red.opacity(0.85))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
@@ -263,6 +332,7 @@ struct NewConcertView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
+                        for entry in videos { if let temp = entry.newURL { try? FileManager.default.removeItem(at: temp) } }
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
@@ -281,6 +351,11 @@ struct NewConcertView: View {
             }
             Button("Отмена", role: .cancel) {}
         }
+        .alert("Видео", isPresented: Binding(get: { videoNotice != nil }, set: { if !$0 { videoNotice = nil } })) {
+            Button("Понятно", role: .cancel) {}
+        } message: {
+            Text(videoNotice ?? "")
+        }
         .alert("Свой тег", isPresented: $showTagAlert) {
             TextField("Например, мурашки", text: $newTag)
                 .textInputAutocapitalization(.never)
@@ -292,6 +367,8 @@ struct NewConcertView: View {
             }
         }
         .onAppear() {
+            guard !didLoadConcert else { return }
+            didLoadConcert = true
             if let concert {
                 artist = concert.artist
                 city = concert.city
@@ -301,6 +378,14 @@ struct NewConcertView: View {
                 tags = concert.tags
                 for tag in concert.tags where !availableTags.contains(tag) {
                     availableTags.append(tag)
+                }
+                for name in concert.videoNames {
+                    videos.append(VideoEntry(thumbnail: nil, existingName: name))
+                    let id = videos[videos.count - 1].id
+                    Task {
+                        let thumb = await VideoTools.thumbnail(of: URL.documentsDirectory.appending(path: name))
+                        if let i = videos.firstIndex(where: { $0.id == id }) { videos[i].thumbnail = thumb }
+                    }
                 }
                 for name in concert.photoNames {
                     if let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
@@ -358,6 +443,13 @@ private struct PhotoEntry: Identifiable {
     let image: Image
     var existingName: String? = nil
     var data: Data? = nil
+}
+
+private struct VideoEntry: Identifiable {
+    let id = UUID()
+    var thumbnail: UIImage?
+    var existingName: String? = nil
+    var newURL: URL? = nil
 }
 
 #Preview {

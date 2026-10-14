@@ -22,8 +22,8 @@ struct ContentView: View {
 
     func statColumn(value: String, title: String) -> some View {
         VStack {
-            Text(value).font(.system(size: 36, weight: .heavy))
-            Text(title).font(.caption).foregroundStyle(.white.opacity(0.8))
+            Text(value).font(.unbounded(36, .bold))
+            Text(title).font(.onest(12)).foregroundStyle(.white.opacity(0.8))
         }
         .frame(maxWidth: .infinity)
     }
@@ -59,7 +59,7 @@ struct ContentView: View {
                         }
                         if concerts.isEmpty {
                             Text("Концертов пока нет")
-                                .font(.system(size: 14))
+                                .font(.onest(14))
                                 .foregroundStyle(.white.opacity(0.5))
                                 .padding(.top, 40)
                         }

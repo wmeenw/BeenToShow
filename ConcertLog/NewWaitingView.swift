@@ -29,7 +29,7 @@ struct NewWaitingView: View {
             }
         } label: {
             Text(title)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.onest(15, .semibold))
                 .foregroundStyle(selected ? Color.black : Color.white)
                 .lineLimit(1)
                 .fixedSize()

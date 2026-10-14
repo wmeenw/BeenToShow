@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MainTabView: View {
     var body: some View {
@@ -40,7 +41,18 @@ struct ProfileView: View {
     @State private var showNameAlert = false
     @State private var nameDraft = ""
     @State private var showDeleteAll = false
-    @State private var showSoon = false
+    @State private var backupItem: ShareablePDF?
+    @State private var isBackingUp = false
+    @State private var showImporter = false
+    @State private var pendingRestore: BackupPayload?
+    @State private var restoredCount = 0
+    @State private var pendingShareURL: URL?
+    @State private var showRestoreConfirm = false
+    @State private var backupMessage: String?
+    @State private var showBackupMessage = false
+    @State private var shareItem: ShareablePDF?
+    @State private var showEmptyExport = false
+    @State private var isExporting = false
     @State private var showAllAchievements = false
     
     private let levels: [(threshold: Int, title: String, genitive: String)] = [
@@ -148,7 +160,7 @@ struct ProfileView: View {
                     Image(systemName: "gearshape")
                     Text("Изменить")
                 }
-                .font(.system(size: 14, weight: .medium))
+                .font(.onest(14, .medium))
                 .foregroundStyle(Color.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
@@ -165,7 +177,7 @@ struct ProfileView: View {
         let level = levels[levelIndex]
         return HStack(spacing: 16) {
             Text(String(name.prefix(1)).uppercased())
-                .font(.system(size: 34, weight: .heavy))
+                .font(.unbounded(34, .bold))
                 .foregroundStyle(Color.white)
                 .frame(width: 76, height: 76)
                 .background(
@@ -179,7 +191,8 @@ struct ProfileView: View {
                 .shadow(color: Color.btsPink.opacity(0.5), radius: 16)
             VStack(alignment: .leading, spacing: 4) {
                 Text(name)
-                    .font(.system(size: 34, weight: .heavy))
+                    .font(.unbounded(24, .bold))
+                    .lineLimit(1).minimumScaleFactor(0.5)
                     .foregroundStyle(Color.white)
                 Text("УРОВЕНЬ · \(level.title.uppercased())")
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
@@ -208,7 +221,7 @@ struct ProfileView: View {
                     Text("максимальный уровень")
                 }
             }
-            .font(.system(size: 13))
+            .font(.onest(13))
             .foregroundStyle(Color.white.opacity(0.55))
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
@@ -232,9 +245,9 @@ struct ProfileView: View {
     private func figure(_ value: String, _ title: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.system(size: 40, weight: .heavy))
+                .font(.unbounded(40, .bold))
             Text(title)
-                .font(.system(size: 13))
+                .font(.onest(13))
                 .opacity(0.85)
         }
         .foregroundStyle(Color.white)
@@ -293,11 +306,11 @@ struct ProfileView: View {
                         VStack(spacing: 6) {
                             HStack {
                                 Text(artist.name)
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.unbounded(13, .bold))
                                     .foregroundStyle(Color.white)
                                 Spacer()
                                 Text("\(artist.count) \(plural(artist.count, one: "раз", few: "раза", many: "раз"))")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.unbounded(12, .bold))
                                     .foregroundStyle(Color.btsPink)
                             }
                             GeometryReader { proxy in
@@ -321,7 +334,7 @@ struct ProfileView: View {
                 }
                 if favoriteArtists.isEmpty {
                     Text("Пока нет прошедших концертов")
-                        .font(.system(size: 14))
+                        .font(.onest(14))
                         .foregroundStyle(Color.white.opacity(0.5))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -334,7 +347,7 @@ struct ProfileView: View {
     
     private func outlinePill(_ text: String, color: Color) -> some View {
         Text(text)
-            .font(.system(size: 14, weight: .medium))
+            .font(.onest(14, .medium))
             .foregroundStyle(color)
             .lineLimit(1)
             .fixedSize()
@@ -353,7 +366,7 @@ struct ProfileView: View {
             sectionLabel("ЛЮБИМЫЙ ВАЙБ")
             if favoriteTags.isEmpty {
                 Text("Пока нет тегов")
-                    .font(.system(size: 14))
+                    .font(.onest(14))
                     .foregroundStyle(Color.white.opacity(0.5))
             } else {
                 TagFlowLayout(spacing: 8) {
@@ -374,7 +387,7 @@ struct ProfileView: View {
                     outlinePill(city, color: Color.btsViolet)
                 }
                 Text("+ следующий")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.onest(14, .medium))
                     .foregroundStyle(Color.btsViolet.opacity(0.8))
                     .lineLimit(1)
                     .fixedSize()
@@ -423,10 +436,10 @@ struct ProfileView: View {
                     ForEach(Array(achievements.enumerated()), id: \.offset) { _, item in
                         VStack(spacing: 4) {
                             Text(item.value)
-                                .font(.system(size: 24, weight: .heavy))
+                                .font(.unbounded(24, .bold))
                                 .foregroundStyle(Color.btsPink)
                             Text(item.title)
-                                .font(.system(size: 11))
+                                .font(.onest(11))
                                 .foregroundStyle(Color.white)
                                 .multilineTextAlignment(.center)
                         }
@@ -460,7 +473,7 @@ struct ProfileView: View {
                     showAllAchievements = true
                 } label: {
                     Text("все \(achievements.count)")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.onest(13, .medium))
                         .foregroundStyle(Color.btsPink)
                 }
                 .buttonStyle(.plain)
@@ -470,10 +483,10 @@ struct ProfileView: View {
                     ForEach(Array(achievements.enumerated()), id: \.offset) { _, item in
                         VStack(spacing: 4) {
                             Text(item.value)
-                                .font(.system(size: 24, weight: .heavy))
+                                .font(.unbounded(24, .bold))
                                 .foregroundStyle(Color.btsPink)
                             Text(item.title)
-                                .font(.system(size: 11))
+                                .font(.onest(11))
                                 .foregroundStyle(Color.white)
                                 .multilineTextAlignment(.center)
                         }
@@ -491,7 +504,7 @@ struct ProfileView: View {
     private func settingsRow<Trailing: View>(_ title: String, @ViewBuilder trailing: () -> Trailing) -> some View {
         HStack {
             Text(title)
-                .font(.system(size: 16))
+                .font(.onest(16))
                 .foregroundStyle(Color.white)
             Spacer()
             trailing()
@@ -500,19 +513,76 @@ struct ProfileView: View {
         .padding(.vertical, 14)
     }
     
-    private func valueRow(_ title: String, value: String) -> some View {
-        Button {
-            showSoon = true
-        } label: {
-            settingsRow(title) {
-                Text("\(value) ›")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.white.opacity(0.5))
+    private func showBackupAlert(_ text: String) {
+        backupMessage = text
+        showBackupMessage = true
+    }
+
+    private func createBackup() {
+        let concerts = store.concerts
+        guard !concerts.isEmpty else {
+            showBackupAlert(BackupError.empty.localizedDescription)
+            return
+        }
+        isBackingUp = true
+        Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                Result { try BackupManager.createBackup(concerts: concerts, photosDirectory: URL.documentsDirectory) }
+            }.value
+            isBackingUp = false
+            switch result {
+            case .success(let backup):
+                if backup.videosSkipped {
+                    pendingShareURL = backup.url
+                    showBackupAlert("Видео не вошли в копию из-за размера. Концерты и фото сохранены.")
+                } else {
+                    backupItem = ShareablePDF(url: backup.url)
+                }
+            case .failure(let error):
+                showBackupAlert((error as? BackupError)?.localizedDescription ?? "Не получилось создать копию. Проверь, что на устройстве хватает места, и попробуй ещё раз.")
             }
         }
-        .buttonStyle(.plain)
     }
-    
+
+    private func handleImport(_ result: Result<[URL], Error>) {
+        guard case .success(let urls) = result, let url = urls.first else {
+            if case .failure = result { showBackupAlert("Не получилось открыть файл.") }
+            return
+        }
+        Task {
+            let parsed = await Task.detached(priority: .userInitiated) {
+                Result { try BackupManager.readBackup(at: url) }
+            }.value
+            switch parsed {
+            case .success(let payload):
+                pendingRestore = payload
+                showRestoreConfirm = true
+            case .failure(let error):
+                showBackupAlert((error as? BackupError)?.localizedDescription ?? "Не получилось прочитать файл копии.")
+            }
+        }
+    }
+
+    private func exportPDF() {
+        let concerts = store.concerts
+        guard concerts.contains(where: { $0.isPast }) else {
+            showEmptyExport = true
+            return
+        }
+        isExporting = true
+        Task {
+            let url = await Task.detached(priority: .userInitiated) {
+                PDFExporter.export(concerts: concerts)
+            }.value
+            isExporting = false
+            if let url {
+                shareItem = ShareablePDF(url: url)
+            } else {
+                showEmptyExport = true
+            }
+        }
+    }
+
     private var remindersBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionLabel("НАПОМИНАНИЯ")
@@ -536,7 +606,7 @@ struct ProfileView: View {
                 } label: {
                     settingsRow("Заранее напоминать") {
                         Text("\(remindLead) ›")
-                            .font(.system(size: 15))
+                            .font(.onest(15))
                             .foregroundStyle(Color.white.opacity(0.5))
                     }
                 }
@@ -545,14 +615,53 @@ struct ProfileView: View {
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
     }
-    
+
     private var dataBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionLabel("ДАННЫЕ И ПРИЛОЖЕНИЕ")
             VStack(spacing: 0) {
-                valueRow("Экспорт дневника", value: "PDF")
+                Button {
+                    exportPDF()
+                } label: {
+                    settingsRow("Экспорт дневника") {
+                        if isExporting {
+                            ProgressView().tint(Color.btsLime)
+                        } else {
+                            Text("PDF ›")
+                                .font(.onest(15))
+                                .foregroundStyle(Color.white.opacity(0.5))
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isExporting)
                 Divider().overlay(Color.white.opacity(0.08))
-                valueRow("Резервная копия", value: "iCloud")
+                Button {
+                    createBackup()
+                } label: {
+                    settingsRow("Создать копию") {
+                        if isBackingUp {
+                            ProgressView().tint(Color.btsLime)
+                        } else {
+                            Text("Файл ›")
+                                .font(.onest(15))
+                                .foregroundStyle(Color.white.opacity(0.5))
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isBackingUp)
+                Divider().overlay(Color.white.opacity(0.08))
+                Button {
+                    showImporter = true
+                } label: {
+                    settingsRow("Восстановить из копии") {
+                        Text("›")
+                            .font(.onest(15))
+                            .foregroundStyle(Color.white.opacity(0.5))
+                    }
+                }
+                .buttonStyle(.plain)
                 Divider().overlay(Color.white.opacity(0.08))
                 settingsRow("Половинки звёзд") {
                     Toggle("", isOn: $halfStars)
@@ -572,7 +681,7 @@ struct ProfileView: View {
                 Divider().overlay(Color.white.opacity(0.08))
                 settingsRow("Версия") {
                     Text("0.1 (MVP)")
-                        .font(.system(size: 15))
+                        .font(.onest(15))
                         .foregroundStyle(Color.white.opacity(0.5))
                 }
             }
@@ -611,10 +720,52 @@ struct ProfileView: View {
             }
             Button("Отмена", role: .cancel) {}
         }
-        .alert("Скоро", isPresented: $showSoon) {
+        .alert("Пока нечего экспортировать", isPresented: $showEmptyExport) {
             Button("Понятно", role: .cancel) {}
         } message: {
-            Text("Эта функция появится позже.")
+            Text("Добавь хотя бы один прошедший концерт, и дневник можно будет выгрузить в PDF.")
+        }
+        .sheet(item: $shareItem) { item in
+            ActivityView(items: [item.url])
+        }
+        .sheet(item: $backupItem) { item in
+            ActivityView(items: [item.url])
+        }
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.item]) { result in
+            handleImport(result.map { [$0] })
+        }
+        .alert("Заменить данные?", isPresented: $showRestoreConfirm) {
+            Button("Заменить", role: .destructive) {
+                if let payload = pendingRestore {
+                    restoredCount = payload.concerts.count
+                    pendingRestore = nil
+                    Task {
+                        let ok = await store.restore(payload)
+                        try? await Task.sleep(for: .milliseconds(400))
+                        if ok {
+                            showBackupAlert("Готово: восстановлено концертов — \(restoredCount).")
+                        } else {
+                            showBackupAlert("Не удалось записать файлы копии (возможно, не хватает места). Текущие данные не изменены.")
+                        }
+                    }
+                }
+            }
+            Button("Отмена", role: .cancel) { pendingRestore = nil }
+        } message: {
+            Text("Текущий дневник будет заменён данными из копии (концертов: \(pendingRestore?.concerts.count ?? restoredCount)). Это действие нельзя отменить.")
+        }
+        .alert("Резервная копия", isPresented: $showBackupMessage) {
+            Button("Понятно", role: .cancel) {
+                if let url = pendingShareURL {
+                    pendingShareURL = nil
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(400))
+                        backupItem = ShareablePDF(url: url)
+                    }
+                }
+            }
+        } message: {
+            Text(backupMessage ?? "")
         }
         .confirmationDialog("Удалить все данные?", isPresented: $showDeleteAll, titleVisibility: .visible) {
             Button("Удалить все концерты", role: .destructive) {

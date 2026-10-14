@@ -1,4 +1,8 @@
 import Foundation
+import AVFoundation
+import CoreTransferable
+import UniformTypeIdentifiers
+import UIKit
 
 struct Concert: Identifiable, Codable {
     var id = UUID()
@@ -9,10 +13,11 @@ struct Concert: Identifiable, Codable {
     let tags: [String]
     let comment: String?
     var photoNames: [String] = []
+    var videoNames: [String] = []
     var saleDate: Date? = nil
     var reminders: [String] = []
     var remindAfterConcert: Bool = false
-    var isPast: Bool {
+    nonisolated var isPast: Bool {
         let calendar = Calendar.current
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) ?? Date()
         return date < tomorrow
@@ -43,9 +48,47 @@ extension Concert {
                 photoNames = []
             }
         }
+        videoNames = try container.decodeIfPresent([String].self, forKey: .videoNames) ?? []
         saleDate = try container.decodeIfPresent(Date.self, forKey: .saleDate)
         reminders = try container.decodeIfPresent([String].self, forKey: .reminders) ?? []
         remindAfterConcert = try container.decodeIfPresent(Bool.self, forKey: .remindAfterConcert) ?? false
+    }
+}
+
+/// Видео, выбранное в PhotosPicker: файл копируется во временную папку (без загрузки в память).
+struct PickedVideo: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .movie) { video in
+            SentTransferredFile(video.url)
+        } importing: { received in
+            let ext = received.file.pathExtension.isEmpty ? "mov" : received.file.pathExtension
+            let dest = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + "." + ext)
+            try FileManager.default.copyItem(at: received.file, to: dest)
+            return PickedVideo(url: dest)
+        }
+    }
+}
+
+enum VideoLimits {
+    static let maxCount = 3
+    static let maxSeconds: Double = 60
+}
+
+enum VideoTools {
+    static func duration(of url: URL) async -> Double {
+        let asset = AVURLAsset(url: url)
+        guard let time = try? await asset.load(.duration) else { return 0 }
+        return time.seconds.isFinite ? time.seconds : 0
+    }
+
+    static func thumbnail(of url: URL) async -> UIImage? {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 400, height: 400)
+        guard let result = try? await generator.image(at: .zero) else { return nil }
+        return UIImage(cgImage: result.image)
     }
 }
 

@@ -18,7 +18,23 @@ import UserNotifications
         }
     }
 
-    func add(artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String] = [], photoDatas: [Data] = [], saleDate: Date? = nil, reminders: [String] = [], remindAfterConcert: Bool = false) {
+    /// Переносит выбранные видео из временной папки в documents, возвращает имена файлов.
+    private func writeVideos(_ urls: [URL]) -> [String] {
+        urls.compactMap { url in
+            let ext = url.pathExtension.isEmpty ? "mov" : url.pathExtension
+            let name = UUID().uuidString + "." + ext
+            let dest = URL.documentsDirectory.appending(path: name)
+            do {
+                do { try FileManager.default.moveItem(at: url, to: dest) }
+                catch { try FileManager.default.copyItem(at: url, to: dest) }
+                return name
+            } catch {
+                return nil
+            }
+        }
+    }
+
+    func add(artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String] = [], photoDatas: [Data] = [], videoURLs: [URL] = [], saleDate: Date? = nil, reminders: [String] = [], remindAfterConcert: Bool = false) {
         let newConcert = Concert(
             artist: artist,
             city: city,
@@ -27,6 +43,7 @@ import UserNotifications
             tags: tags,
             comment: comment.isEmpty ? nil : comment,
             photoNames: writePhotos(photoDatas),
+            videoNames: writeVideos(videoURLs),
             saleDate: saleDate,
             reminders: reminders,
             remindAfterConcert: remindAfterConcert
@@ -36,7 +53,7 @@ import UserNotifications
         scheduleNotifications(for: newConcert)
     }
 
-    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], keptPhotoNames: [String]? = nil, newPhotoDatas: [Data] = [], saleDate: Date?, reminders: [String], remindAfterConcert: Bool) {
+    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], keptPhotoNames: [String]? = nil, newPhotoDatas: [Data] = [], keptVideoNames: [String]? = nil, newVideoURLs: [URL] = [], saleDate: Date?, reminders: [String], remindAfterConcert: Bool) {
         guard let index = concerts.firstIndex(where: { $0.id == old.id }) else { return }
         let existingNames = concerts[index].photoNames
         let namesToKeep = keptPhotoNames ?? existingNames
@@ -45,6 +62,12 @@ import UserNotifications
             try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
         }
         let finalNames = namesToKeep + writePhotos(newPhotoDatas)
+        let existingVideos = concerts[index].videoNames
+        let videosToKeep = keptVideoNames ?? existingVideos
+        for name in Set(existingVideos).subtracting(videosToKeep) {
+            try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
+        }
+        let finalVideos = videosToKeep + writeVideos(newVideoURLs)
         let updatedConcert = Concert(
             id: old.id,
             artist: artist,
@@ -54,6 +77,7 @@ import UserNotifications
             tags: tags,
             comment: comment.isEmpty ? nil : comment,
             photoNames: finalNames,
+            videoNames: finalVideos,
             saleDate: saleDate,
             reminders: reminders,
             remindAfterConcert: remindAfterConcert
@@ -64,7 +88,7 @@ import UserNotifications
     }
 
     func delete(_ concert: Concert) {
-        for name in concert.photoNames {
+        for name in concert.photoNames + concert.videoNames {
             try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
         }
         concerts.removeAll { $0.id == concert.id }
@@ -72,9 +96,52 @@ import UserNotifications
         cancelNotifications(for: concert)
     }
 
+    /// Полная замена данных из резервной копии: фото, концерты, уведомления.
+    /// Файлы пишутся вне главного потока; при любой ошибке записи старые данные не трогаем.
+    @discardableResult
+    func restore(_ payload: BackupPayload) async -> Bool {
+        let docs = URL.documentsDirectory
+        let restored = payload.concerts
+        let needed = Set(restored.flatMap { $0.photoNames + $0.videoNames })
+        let photos = payload.photos.filter { needed.contains($0.key) }
+        let videos = payload.videos.filter { needed.contains($0.key) }
+        let written: [String]? = await Task.detached(priority: .userInitiated) {
+            var done: [String] = []
+            for (name, data) in photos.map({ ($0.key, $0.value) }) + videos.map({ ($0.key, $0.value) }) {
+                do {
+                    try data.write(to: docs.appending(path: name), options: .atomic)
+                    done.append(name)
+                } catch {
+                    return nil
+                }
+            }
+            return done
+        }.value
+        guard written != nil else { return false }
+
+        // Страховка: текущие данные кладём в concerts_backup до замены.
+        if let current = UserDefaults.standard.data(forKey: "concerts") {
+            UserDefaults.standard.set(current, forKey: "concerts_backup")
+        }
+        let old = concerts
+        for concert in old { cancelNotifications(for: concert) }
+        concerts = restored
+        save()
+        // Старые файлы удаляем только после сохранения.
+        for concert in old {
+            for name in concert.photoNames + concert.videoNames where !needed.contains(name) {
+                try? FileManager.default.removeItem(at: docs.appending(path: name))
+            }
+        }
+        for concert in concerts {
+            scheduleNotifications(for: concert)
+        }
+        return true
+    }
+
     func deleteAll() {
         for concert in concerts {
-            for name in concert.photoNames {
+            for name in concert.photoNames + concert.videoNames {
                 try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
             }
             cancelNotifications(for: concert)

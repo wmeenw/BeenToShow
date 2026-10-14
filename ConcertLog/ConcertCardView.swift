@@ -1,4 +1,5 @@
 import SwiftUI
+import AVKit
 
 struct ConcertCardView: View {
     let initial: Concert
@@ -9,6 +10,8 @@ struct ConcertCardView: View {
     @State private var selectedPhotoIndex: Int? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
+
+    private var mediaCount: Int { concert.photoNames.count + concert.videoNames.count }
 
     private var photoViewer: some View {
         ZStack(alignment: .topTrailing) {
@@ -24,6 +27,10 @@ struct ConcertCardView: View {
                             .scaledToFit()
                             .tag(index)
                     }
+                }
+                ForEach(Array(concert.videoNames.enumerated()), id: \.offset) { offset, name in
+                    VideoPage(url: URL.documentsDirectory.appending(path: name), isCurrent: selectedPhotoIndex == concert.photoNames.count + offset)
+                        .tag(concert.photoNames.count + offset)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
@@ -48,7 +55,7 @@ struct ConcertCardView: View {
                     }
                     .foregroundStyle(Color.btsPink)
                     Text(String(format: "%.1f", rating))
-                        .font(.system(size: 21, weight: .bold))
+                        .font(.unbounded(21, .bold))
                         .fixedSize()
                 }
             }
@@ -57,7 +64,7 @@ struct ConcertCardView: View {
     
     private func tagPill(_ tag: String) -> some View {
         Text(tag)
-            .font(.system(size: 13, weight: .semibold))
+            .font(.onest(13, .semibold))
             .foregroundStyle(.white)
             .lineLimit(1)
             .fixedSize()
@@ -100,7 +107,7 @@ struct ConcertCardView: View {
                         .padding(.vertical, 6)
                         .background(Color.btsLime)
                         .clipShape(Capsule())
-                    Text(concert.artist).font(.system(size: 34, weight: .heavy))
+                    Text(concert.artist).font(.unbounded(26, .bold)).lineLimit(2).minimumScaleFactor(0.6)
                     Text(concert.city).foregroundStyle(.white.opacity(0.8))
                     Text(concert.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year()))
                         .foregroundStyle(.white.opacity(0.8))
@@ -131,19 +138,35 @@ struct ConcertCardView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            if concert.photoNames.count > 1 {
+            if mediaCount > 1 || !concert.videoNames.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("МОИ ФОТО И ВИДЕО")
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                             .foregroundStyle(Color.white.opacity(0.45))
                         Spacer()
-                        Text("Все \(concert.photoNames.count)")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Color.btsPink)
+                        Button {
+                            selectedPhotoIndex = 0
+                        } label: {
+                            Text("Все \(mediaCount)")
+                                .font(.onest(13, .medium))
+                                .foregroundStyle(Color.btsPink)
+                                .padding(.vertical, 8)
+                                .padding(.leading, 12)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
+                            ForEach(Array(concert.videoNames.enumerated()), id: \.offset) { offset, name in
+                                Button {
+                                    selectedPhotoIndex = concert.photoNames.count + offset
+                                } label: {
+                                    VideoThumbnail(url: URL.documentsDirectory.appending(path: name))
+                                }
+                                .buttonStyle(.plain)
+                            }
                             ForEach(Array(concert.photoNames.enumerated()), id: \.offset) { index, name in
                                 if let ui = UIImage(contentsOfFile: URL.documentsDirectory.appending(path: name).path) {
                                     Button {
@@ -185,7 +208,7 @@ struct ConcertCardView: View {
                 showEdit = true
             } label: {
                 Text("Изменить")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.onest(17, .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
@@ -214,6 +237,51 @@ struct ConcertCardView: View {
         )) {
             photoViewer
         }
+    }
+}
+
+private struct VideoThumbnail: View {
+    let url: URL
+    @State private var image: UIImage?
+
+    var body: some View {
+        Color.btsCard
+            .frame(width: 100, height: 100)
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
+            }
+            .overlay {
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .task { image = await VideoTools.thumbnail(of: url) }
+    }
+}
+
+private struct VideoPage: View {
+    let url: URL
+    let isCurrent: Bool
+    @State private var player: AVPlayer?
+
+    var body: some View {
+        Group {
+            if let player {
+                VideoPlayer(player: player)
+            } else {
+                Color.black
+            }
+        }
+        .onAppear { if player == nil { player = AVPlayer(url: url) } }
+        .onChange(of: isCurrent) { _, current in
+            if !current { player?.pause() }
+        }
+        .onDisappear { player?.pause() }
     }
 }
 
