@@ -22,6 +22,12 @@ struct WaitingScreen: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    if upcoming.isEmpty {
+                        Text("Концертов пока нет")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.white.opacity(0.5))
+                            .padding(.top, 40)
+                    }
                 }
                 .padding(.horizontal)
             }

@@ -2,7 +2,7 @@ import Foundation
 import UserNotifications
 
 @Observable class ConcertStore {
-    var concerts: [Concert] = sampleConcerts
+    var concerts: [Concert] = []
     
     func save() {
         if let data = try? JSONEncoder().encode(concerts) {
