@@ -4,11 +4,27 @@ import SwiftUI
 struct WaitingCardView : View {
     let concert: Concert
     @State private var showEdit = false
+    @State private var notes = ""
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
-    
+
     private var current: Concert {
         store.concerts.first(where: { $0.id == concert.id }) ?? concert
+    }
+
+    private func saveNotes() {
+        store.update(
+            current,
+            artist: current.artist,
+            city: current.city,
+            date: current.date,
+            rating: current.rating ?? 0,
+            comment: notes,
+            tags: current.tags,
+            saleDate: current.saleDate,
+            reminders: current.reminders,
+            remindAfterConcert: current.remindAfterConcert
+        )
     }
     
     private var headline: String {
@@ -22,6 +38,91 @@ struct WaitingCardView : View {
         Calendar.current.dateComponents([.day, .hour, .minute], from: now, to: current.date)
     }
     
+    private var showWhatsNext: Bool {
+        current.saleDate != nil || !current.reminders.isEmpty || current.remindAfterConcert
+    }
+
+    private var notesBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("ЗАМЕТКИ")
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.45))
+            ZStack(alignment: .topLeading) {
+                if notes.isEmpty {
+                    Text("Место, ряд, с кем идёшь, что взять")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .padding(.top, 8)
+                        .padding(.leading, 5)
+                }
+                TextEditor(text: $notes)
+                    .scrollContentBackground(.hidden)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+            }
+            .frame(minHeight: 100)
+        }
+        .padding(.horizontal)
+        .concertCard()
+        .padding(.horizontal)
+    }
+
+    private var whatsNextBlock: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("ЧТО ДАЛЬШЕ")
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.45))
+            if let sale = current.saleDate {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Старт продаж")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.5))
+                    Text(sale.formatted(.dateTime.day().month(.wide).hour().minute()))
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                    if sale > Date() {
+                        let days = max(0, Calendar.current.dateComponents([.day], from: Date(), to: sale).day ?? 0)
+                        Text(days > 0 ? "через \(days) \(daysWord(days))" : "уже сегодня")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.btsLime)
+                    }
+                }
+            }
+            if !current.reminders.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Напомнить")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.5))
+                    TagFlowLayout(spacing: 8) {
+                        ForEach(current.reminders, id: \.self) { reminder in
+                            Text(reminder)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.black)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color.btsLime)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+            if current.remindAfterConcert {
+                HStack(spacing: 8) {
+                    Image(systemName: "bell.fill")
+                        .foregroundStyle(Color.btsLime)
+                    Text("Напомню записать впечатление после концерта")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+            }
+        }
+        .padding(.horizontal)
+        .concertCard()
+        .padding(.horizontal)
+    }
+
     func tile(value: Int, title: String) -> some View {
         VStack(spacing: 4) {
             Text(String(format: "%02d", value))
@@ -71,9 +172,21 @@ struct WaitingCardView : View {
                             LinearGradient(colors: [Color.btsPink, Color.btsViolet],
                                            startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2))
                 .padding(.horizontal)
-                Spacer()
-                
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        notesBlock
+                        if showWhatsNext {
+                            whatsNextBlock
+                        }
+                    }
+                    .padding(.vertical, 16)
+                }
+
                 Button {
+                    if notes != (current.comment ?? "") {
+                        saveNotes()
+                    }
                     showEdit = true
                 } label: {
                     Text("Изменить")
@@ -94,6 +207,14 @@ struct WaitingCardView : View {
             }
             .background(Color.btsBackground.ignoresSafeArea())
             .preferredColorScheme(.dark)
+        }
+        .onAppear {
+            notes = current.comment ?? ""
+        }
+        .onDisappear {
+            if notes != (current.comment ?? "") {
+                saveNotes()
+            }
         }
         .onChange(of: store.concerts.contains { $0.id == concert.id }) { _, exists in
             if !exists {
