@@ -11,6 +11,7 @@ struct NewConcertView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var photo: Image?
     @State private var photoData: Data?
+    var concert: Concert? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(ConcertStore.self) private var store
     
@@ -113,7 +114,10 @@ struct NewConcertView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
-                    store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, photoData: photoData)
+                    if let concert {
+                        store.update(concert, artist: artist, city: city, date: date, rating: rating, comment: comment)
+                    } else {
+                        store.add(artist: artist, city: city, date: date, rating: rating, comment: comment, photoData: photoData)}
                     dismiss()
                 } label: {
                     Text("Сохранить впечатление")
@@ -149,6 +153,15 @@ struct NewConcertView: View {
             .background(Color.btsBackground.ignoresSafeArea())
         }
         .preferredColorScheme(.dark)
+        .onAppear() {
+            if let concert {
+                artist = concert.artist
+                city = concert.city
+                date = concert.date
+                rating = concert.rating ?? 0
+                comment = concert.comment ?? ""
+            }
+        }
     }
 }
 

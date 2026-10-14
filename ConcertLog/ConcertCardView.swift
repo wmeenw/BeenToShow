@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ConcertCardView: View {
     let concert: Concert
+    @State private var showEdit = false
 
     var body: some View {
         VStack {
@@ -94,7 +95,7 @@ struct ConcertCardView: View {
             Spacer()
             
             Button {
-                
+                showEdit = true
             } label: {
                 Text("Изменить")
                     .font(.system(size: 17, weight: .semibold))
@@ -109,6 +110,7 @@ struct ConcertCardView: View {
                             .stroke(Color.white.opacity(0.1), lineWidth: 1)
                     )
             }
+            .sheet(isPresented: $showEdit) { NewConcertView(concert: concert) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.btsBackground.ignoresSafeArea())

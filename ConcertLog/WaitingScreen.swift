@@ -5,7 +5,7 @@ struct WaitingScreen: View {
     @Environment(ConcertStore.self) private var store
     var upcoming: [Concert] {
         store.concerts
-            .filter { $0.isPast }
+            .filter { !$0.isPast }
             .sorted { $0.date < $1.date }
     }
     

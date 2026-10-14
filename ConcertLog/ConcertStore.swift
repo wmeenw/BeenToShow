@@ -30,6 +30,13 @@ import Foundation
         save()
     }
     
+    func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String) {
+        if let index = concerts.firstIndex(where: { $0.id == old.id }) {
+            concerts[index] = Concert(id: old.id, artist: artist, city: city, date: date, rating: rating < 0.05 ? nil : rating, tags: old.tags, comment: comment.isEmpty ? nil : comment, photoName: old.photoName)
+            }
+        save()
+    }
+    
     init() {
         if let concert = UserDefaults.standard.data(forKey: "concerts"),
            let saved = try? JSONDecoder().decode([Concert].self, from: concert) {
