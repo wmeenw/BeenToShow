@@ -10,8 +10,6 @@
 
 ![Все экраны MVP](docs/design/all-screens.png)
 
-<img src="docs/design/profile.png" width="520" alt="Профиль">
-
 ### Путь пользователя
 
 ![Сценарий](docs/design/user-flow.png)
