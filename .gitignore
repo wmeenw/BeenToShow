@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Xcode: личные настройки и сборки
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.build/
+
+# Секреты и сертификаты (на всякий случай)
+.env
+*.p12
+*.mobileprovision
+*.cer
