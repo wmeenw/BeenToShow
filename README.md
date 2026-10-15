@@ -4,6 +4,10 @@
 
 *A concert diary for iOS: log impressions, ratings, photos and videos, track upcoming shows and get ticket-sale reminders.*
 
+## Скриншоты
+
+<img src="docs/screenshots/concerts.png" width="260" alt="Мои концерты">
+
 ## Возможности
 
 - Дневник прошедших концертов: артист, город, дата, оценка, «вайб», комментарий, до 10 фото и до 3 видео
