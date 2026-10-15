@@ -31,6 +31,14 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack {
+                Text("Мои концерты")
+                    .font(.unbounded(30, .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+
                 HStack {
                     statColumn(value: "\(concertsCount)", title: "концертов")
                     statColumn(value: "\(citiesCount)", title: "городов")
@@ -67,7 +75,7 @@ struct ContentView: View {
                     .padding(.horizontal)
                 }
             }
-            .navigationTitle("Мои концерты")
+            .toolbar(.hidden, for: .navigationBar)
             .background(Color.btsBackground.ignoresSafeArea())
             .overlay(alignment: .bottomTrailing) {
                 Button {
