@@ -4,9 +4,21 @@
 
 *A concert diary for iOS: log impressions, ratings, photos and videos, track upcoming shows and get ticket-sale reminders.*
 
-## Скриншоты
+## Дизайн
 
-<img src="docs/screenshots/concerts.png" width="260" alt="Мои концерты">
+Макеты экранов, из которых делалось приложение (дизайн, не снимки готовой сборки: детали интерфейса в приложении могут отличаться).
+
+![Все экраны MVP](docs/design/all-screens.png)
+
+<img src="docs/design/profile.png" width="520" alt="Профиль">
+
+### Путь пользователя
+
+![Сценарий](docs/design/user-flow.png)
+
+### Чем отличается от аналогов
+
+![Сравнение с конкурентами](docs/design/competitors.png)
 
 ## Возможности
 
