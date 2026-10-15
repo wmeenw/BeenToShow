@@ -33,6 +33,7 @@ private struct FavoriteArtist: Identifiable {
 
 struct ProfileView: View {
     @Environment(ConcertStore.self) private var store
+    @Environment(AccountManager.self) private var account
     @AppStorage("profileName") private var name = "Маша"
     @AppStorage("remindSale") private var remindSale = true
     @AppStorage("remindImpression") private var remindImpression = true
@@ -54,6 +55,9 @@ struct ProfileView: View {
     @State private var showEmptyExport = false
     @State private var isExporting = false
     @State private var showAllAchievements = false
+    @State private var showSignOut = false
+    @State private var isSigningOut = false
+    @State private var showSignOutFailed = false
     
     private let levels: [(threshold: Int, title: String, genitive: String)] = [
         (0, "Новичок", "Новичка"),
@@ -616,6 +620,70 @@ struct ProfileView: View {
         }
     }
 
+    private var accountBlock: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("АККАУНТ")
+            VStack(spacing: 0) {
+                settingsRow("Ник") {
+                    Text("@\(account.nick)")
+                        .font(.onest(15))
+                        .foregroundStyle(Color.white.opacity(0.5))
+                }
+                Divider().overlay(Color.white.opacity(0.08))
+                settingsRow("Синхронизация") {
+                    if store.isSyncing {
+                        ProgressView().tint(Color.btsLime)
+                    } else if store.hasUnsyncedChanges {
+                        Text("Есть несохранённые изменения")
+                            .font(.onest(15))
+                            .foregroundStyle(Color.btsPink)
+                    } else if store.failedSyncCount > 0 {
+                        Text("Не удалось синхронизировать: \(store.failedSyncCount)")
+                            .font(.onest(15))
+                            .foregroundStyle(Color.btsPink)
+                    } else {
+                        Text("Синхронизировано")
+                            .font(.onest(15))
+                            .foregroundStyle(Color.btsLime)
+                    }
+                }
+                Divider().overlay(Color.white.opacity(0.08))
+                Button {
+                    showSignOut = true
+                } label: {
+                    settingsRow("Выйти из аккаунта") {
+                        if isSigningOut {
+                            ProgressView().tint(Color.btsLime)
+                        } else {
+                            Text("›").foregroundStyle(Color.btsPink)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isSigningOut)
+            }
+            .background(Color.btsCard)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+
+    private func signOut(force: Bool = false) {
+        isSigningOut = true
+        Task {
+            // Последняя попытка отправить несохранённое. Если не вышло, ничего не стираем без согласия.
+            let sent = await store.flushPending()
+            if !force && (!sent || store.failedSyncCount > 0) {
+                isSigningOut = false
+                showSignOutFailed = true
+                return
+            }
+            await store.clearLocalData()
+            UserDefaults.standard.removeObject(forKey: "profileName")
+            await account.signOut()
+            isSigningOut = false
+        }
+    }
+
     private var dataBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionLabel("ДАННЫЕ И ПРИЛОЖЕНИЕ")
@@ -702,6 +770,7 @@ struct ProfileView: View {
                 geographyBlock
                 achievementsBlock
                 remindersBlock
+                accountBlock
                 dataBlock
             }
             .padding(.horizontal)
@@ -710,12 +779,16 @@ struct ProfileView: View {
         }
         .background(Color.btsBackground.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .onChange(of: account.displayName, initial: true) { _, new in
+            if !new.isEmpty, new != name { name = new }
+        }
         .alert("Твоё имя", isPresented: $showNameAlert) {
             TextField("Имя", text: $nameDraft)
             Button("Сохранить") {
                 let trimmed = nameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmed.isEmpty {
                     name = trimmed
+                    Task { await account.updateDisplayName(trimmed) }
                 }
             }
             Button("Отмена", role: .cancel) {}
@@ -773,7 +846,21 @@ struct ProfileView: View {
             }
             Button("Отмена", role: .cancel) {}
         } message: {
-            Text("Все концерты и фото будут удалены без возможности восстановления.")
+            Text("Все концерты и фото будут удалены с этого устройства и из твоего аккаунта на сервере, на всех устройствах. Восстановить их можно будет только из файла резервной копии.")
+        }
+        .confirmationDialog("Выйти из аккаунта?", isPresented: $showSignOut, titleVisibility: .visible) {
+            Button("Выйти", role: .destructive) { signOut() }
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text(store.hasUnsyncedChanges
+                 ? "Часть изменений ещё не отправлена на сервер. Перед выходом попробуем отправить их; если не получится, спросим ещё раз. С этого устройства данные будут удалены."
+                 : "Твои концерты и фото сохранены в аккаунте и вернутся при следующем входе. С этого устройства они будут удалены.")
+        }
+        .confirmationDialog("Не удалось отправить изменения", isPresented: $showSignOutFailed, titleVisibility: .visible) {
+            Button("Выйти и потерять их", role: .destructive) { signOut(force: true) }
+            Button("Остаться", role: .cancel) {}
+        } message: {
+            Text("Часть правок не попала на сервер (нет сети или сервер их не принял). Если выйти сейчас, они будут потеряны.")
         }
     }
 }
@@ -781,4 +868,5 @@ struct ProfileView: View {
 #Preview {
     ProfileView()
         .environment(ConcertStore())
+        .environment(AccountManager())
 }

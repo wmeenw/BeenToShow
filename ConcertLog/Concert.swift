@@ -4,7 +4,7 @@ import CoreTransferable
 import UniformTypeIdentifiers
 import UIKit
 
-struct Concert: Identifiable, Codable {
+nonisolated struct Concert: Identifiable, Codable, Sendable {
     var id = UUID()
     let artist: String
     let city: String
@@ -29,7 +29,7 @@ private enum LegacyConcertCodingKeys: String, CodingKey {
 }
 
 extension Concert {
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         artist = try container.decode(String.self, forKey: .artist)

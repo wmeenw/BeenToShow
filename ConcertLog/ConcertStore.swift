@@ -3,7 +3,16 @@ import UserNotifications
 
 @Observable class ConcertStore {
     var concerts: [Concert] = []
-    
+    /// Есть изменения, которые ещё не ушли на сервер (для строки статуса в профиле).
+    var hasUnsyncedChanges = false
+    /// Идёт полная синхронизация (вход / запуск).
+    var isSyncing = false
+    /// Сколько изменений сервер отклонил насовсем (показывается в профиле).
+    var failedSyncCount = 0
+    /// Растёт при очистке локальных данных (выход из аккаунта): отложенные задачи старого поколения ничего не меняют.
+    private var generation = 0
+    private var syncTask: Task<Void, Never>?
+
     func save() {
         if let data = try? JSONEncoder().encode(concerts) {
             UserDefaults.standard.set(data, forKey: "concerts")
@@ -51,6 +60,7 @@ import UserNotifications
         concerts.append(newConcert)
         save()
         scheduleNotifications(for: newConcert)
+        syncPush(newConcert)
     }
 
     func update(_ old: Concert, artist: String, city: String, date: Date, rating: Double, comment: String, tags: [String], keptPhotoNames: [String]? = nil, newPhotoDatas: [Data] = [], keptVideoNames: [String]? = nil, newVideoURLs: [URL] = [], saleDate: Date?, reminders: [String], remindAfterConcert: Bool) {
@@ -85,6 +95,7 @@ import UserNotifications
         concerts[index] = updatedConcert
         save()
         scheduleNotifications(for: updatedConcert)
+        syncPush(updatedConcert)
     }
 
     func delete(_ concert: Concert) {
@@ -94,6 +105,7 @@ import UserNotifications
         concerts.removeAll { $0.id == concert.id }
         save()
         cancelNotifications(for: concert)
+        syncDelete([concert])
     }
 
     /// Полная замена данных из резервной копии: фото, концерты, уведомления.
@@ -136,6 +148,9 @@ import UserNotifications
         for concert in concerts {
             scheduleNotifications(for: concert)
         }
+        let restoredIDs = Set(restored.map(\.id))
+        syncDelete(old.filter { !restoredIDs.contains($0.id) })
+        for concert in restored { syncPush(concert) }
         return true
     }
 
@@ -146,10 +161,119 @@ import UserNotifications
             }
             cancelNotifications(for: concert)
         }
+        let old = concerts
         concerts = []
         save()
+        syncDelete(old)
+    }
+
+    /// Выход из аккаунта: стираем локальные концерты и файлы, чтобы следующий пользователь их не увидел.
+    /// На сервере ничего не удаляется.
+    func clearLocalData() async {
+        generation += 1
+        isSyncing = false
+        syncTask?.cancel()
+        syncTask = nil
+        let newGeneration = generation
+        for concert in concerts {
+            for name in concert.photoNames + concert.videoNames {
+                try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
+            }
+            cancelNotifications(for: concert)
+        }
+        concerts = []
+        save()
+        UserDefaults.standard.removeObject(forKey: "concerts_backup")
+        await SyncManager.shared.reset(minGeneration: newGeneration)
+        hasUnsyncedChanges = false
+        failedSyncCount = 0
+    }
+
+    /// Вход нового пользователя: если локальные данные принадлежали другому аккаунту, стираем их до первой
+    /// синхронизации. Данные без владельца (до первого входа) сохраняются и объединяются с серверными.
+    func prepareForUser(_ userID: String) async {
+        if await SyncManager.shared.ownerMismatch(for: userID) {
+            await clearLocalData()
+        }
+        await SyncManager.shared.claim(userID: userID)
+    }
+
+    /// Запускает полную синхронизацию отменяемой задачей (отменяется при выходе из аккаунта).
+    func startSync() {
+        guard !isSyncing else { return }
+        syncTask = Task { await syncNow() }
     }
     
+    // MARK: Синхронизация (fire-and-forget, UI не блокируется)
+
+    private func syncPush(_ concert: Concert) {
+        hasUnsyncedChanges = true
+        let g = generation
+        Task {
+            await SyncManager.shared.push(concert, generation: g)
+            await refreshSyncState()
+        }
+    }
+
+    private func syncDelete(_ list: [Concert]) {
+        guard !list.isEmpty else { return }
+        hasUnsyncedChanges = true
+        let g = generation
+        Task {
+            for concert in list { await SyncManager.shared.delete(concert, generation: g) }
+            await refreshSyncState()
+        }
+    }
+
+    func refreshSyncState() async {
+        hasUnsyncedChanges = await SyncManager.shared.hasPending
+        failedSyncCount = await SyncManager.shared.failedCount
+    }
+
+    /// Отправляет накопленное (при возврате в приложение и перед выходом). true - всё ушло на сервер.
+    @discardableResult
+    func flushPending() async -> Bool {
+        let ok = await SyncManager.shared.flushPending()
+        await refreshSyncState()
+        return ok
+    }
+
+    /// Полная синхронизация: объединяет локальные концерты с серверными и скачивает недостающие файлы.
+    func syncNow() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        let g = generation
+        defer { if g == generation { isSyncing = false } }
+        let snapshot = concerts
+        guard let result = try? await SyncManager.shared.pullAll(local: snapshot, generation: g) else {
+            await refreshSyncState()
+            return
+        }
+        // Пока шла синхронизация, вышли из аккаунта: результат принадлежит прошлому пользователю.
+        guard g == generation else { return }
+        // Если за время синхронизации пользователь что-то изменил, не затираем правки: повторим позже.
+        let enc = JSONEncoder()
+        let unchanged = (try? enc.encode(snapshot)) == (try? enc.encode(concerts))
+        if unchanged {
+            let before = Set(snapshot.map(\.id))
+            concerts = result.concerts
+            save()
+            for concert in result.removed {
+                cancelNotifications(for: concert)
+                for name in concert.photoNames + concert.videoNames {
+                    try? FileManager.default.removeItem(at: URL.documentsDirectory.appending(path: name))
+                }
+            }
+            for concert in concerts where !before.contains(concert.id) {
+                scheduleNotifications(for: concert)
+            }
+            await SyncManager.shared.confirmAdopted(result.adopted, generation: g)
+            guard g == generation else { return }
+        }
+        hasUnsyncedChanges = result.hasPending
+        failedSyncCount = await SyncManager.shared.failedCount
+    }
+
     init() {
         guard let stored = UserDefaults.standard.data(forKey: "concerts") else { return }
         if let saved = try? JSONDecoder().decode([Concert].self, from: stored) {
