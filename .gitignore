@@ -13,3 +13,6 @@ build/
 *.p12
 *.mobileprovision
 *.cer
+
+# Локальные ключи бэкенда (шаблон: Secrets.example.swift)
+ConcertLog/Secrets.swift
